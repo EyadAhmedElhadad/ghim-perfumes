@@ -1,0 +1,32 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+*.log
+npm-debug.log*
+
+# env (secrets!)
+.env*.local
+.env
+
+# uploaded product images (local demo uploads)
+/public/media
+/public/uploads
+
+# local demo product store (persisted when DB unconfigured)
+/data
+
+# firebase
+.firebase/
+firebase-debug.log
