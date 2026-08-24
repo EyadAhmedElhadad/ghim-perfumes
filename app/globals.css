@@ -232,3 +232,26 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-outline-variant);
 }
+
+/* Announcement bar marquee — seamless infinite right-to-left scroll.
+   The two identical <span>s inside .marquee-track tile so translating
+   the track by -50% loops with no visible jump. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee 20s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}
