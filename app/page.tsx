@@ -57,7 +57,7 @@ export default async function HomePage() {
               <img
                 src={BRAND.logo}
                 alt="GHIM logo"
-                className="h-36 object-contain opacity-90 drop-shadow-2xl md:h-40"
+                className="h-44 object-contain opacity-90 drop-shadow-2xl md:h-48"
               />
             <h1 className="font-display-lg text-display-md-mobile leading-tight text-on-background md:text-display-md">
               Feel the Clouds.
