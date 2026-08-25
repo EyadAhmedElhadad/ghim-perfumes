@@ -69,6 +69,38 @@ export default function ProductForm({ product }: { product?: AdminProduct }) {
     }
   }
 
+  async function uploadHoverFile(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const productId = product?.id || form.slug || 'new';
+      const file = files[0];
+      const m = await uploadProductImage(file, productId, (pct) =>
+        setProgress((p) => ({ ...p, [file.name]: pct })),
+      );
+      setForm((f) => ({
+        ...f,
+        hoverImage: {
+          url: m.url,
+          path: m.path,
+          alt: `${form.name || 'Product'} hover photo`,
+          order: 0,
+        },
+      }));
+      toast('Hover image uploaded');
+    } catch (err) {
+      const code = (err as Error & { code?: string }).code;
+      toast(
+        code ? `Upload failed (${code})` : err instanceof Error ? err.message : 'Upload failed',
+        'error',
+      );
+    } finally {
+      setUploading(false);
+      setProgress({});
+      setUploadKey((k) => k + 1);
+    }
+  }
+
   const [form, setForm] = useState({
     name: product?.name ?? '',
     tagline: product?.tagline ?? '',
@@ -86,6 +118,7 @@ export default function ProductForm({ product }: { product?: AdminProduct }) {
     inspiredBy: product?.inspiredBy ?? '',
     inspiredByRetail: product?.inspiredByRetail ?? null,
     images: (product?.images ?? []) as ProductMedia[],
+    hoverImage: (product?.hoverImage ?? null) as ProductMedia | null,
     notesTop: product?.notes.top.join(', ') ?? '',
     notesMiddle: product?.notes.middle.join(', ') ?? '',
     notesBase: product?.notes.base.join(', ') ?? '',
@@ -130,6 +163,14 @@ export default function ProductForm({ product }: { product?: AdminProduct }) {
           alt: m.alt || `${form.name} photo`,
           order: typeof m.order === 'number' ? m.order : 0,
         })),
+        hoverImage: form.hoverImage
+          ? {
+              url: form.hoverImage.url,
+              path: form.hoverImage.path ?? '',
+              alt: form.hoverImage.alt || `${form.name} hover photo`,
+              order: typeof form.hoverImage.order === 'number' ? form.hoverImage.order : 0,
+            }
+          : null,
         notes: {
           top: splitList(form.notesTop),
           middle: splitList(form.notesMiddle),
@@ -441,6 +482,57 @@ export default function ProductForm({ product }: { product?: AdminProduct }) {
             ))}
           </div>
         )}
+
+        <div className="space-y-3 border-t border-outline-variant/40 pt-4">
+          <div>
+            <h3 className="font-headline-md text-base font-semibold">
+              Hover Image <span className="text-on-surface-variant">(optional)</span>
+            </h3>
+            <p className="mt-1 text-xs text-on-surface-variant">
+              A clean, plain studio shot of just the bottle. It crossfades in
+              when a shopper hovers this product&apos;s card. Leave empty to keep
+              the default image on hover.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest p-4">
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 py-4 text-center">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => uploadHoverFile(e.target.files)}
+                disabled={uploading}
+              />
+              <span className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-colors hover:bg-primary-fixed-dim">
+                {uploading ? 'Uploading…' : '+ Upload hover image'}
+              </span>
+              <span className="text-xs text-on-surface-variant">
+                Single image · JPG, PNG, WEBP, GIF or AVIF · up to 5 MB.
+                Uploaded to Firebase Storage (<code>products/{"{id}"}/…</code>).
+              </span>
+            </label>
+          </div>
+
+          {form.hoverImage?.url && (
+            <div className="relative size-24 overflow-hidden rounded-lg border border-outline-variant">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={form.hoverImage.url}
+                alt={form.hoverImage.alt}
+                className="h-full w-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => set('hoverImage', null)}
+                aria-label="Remove hover image"
+                className="absolute right-0.5 top-0.5 rounded-full bg-black/60 px-1.5 text-[10px] leading-4 text-white"
+              >
+                ×
+              </button>
+            </div>
+          )}
+        </div>
       </section>
 
       <div className="flex justify-end gap-3">

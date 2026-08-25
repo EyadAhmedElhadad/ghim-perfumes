@@ -20,6 +20,14 @@ function adminToProduct(p: AdminProduct): Product {
       : [],
     price: Number(p.price ?? 0),
     compareAtPrice: p.compareAtPrice ?? null,
+    hoverImage: p.hoverImage
+      ? {
+          url: p.hoverImage.url,
+          path: p.hoverImage.path ?? '',
+          alt: p.hoverImage.alt || `${p.name} photo (hover)`,
+          order: p.hoverImage.order ?? 0,
+        }
+      : undefined,
     currency: p.currency || 'EGP',
     stock: Number(p.stock ?? 0),
     concentration: p.concentration || 'Eau de Parfum',

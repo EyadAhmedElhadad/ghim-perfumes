@@ -30,3 +30,6 @@ npm-debug.log*
 # firebase
 .firebase/
 firebase-debug.log
+
+# typescript build info
+*.tsbuildinfo

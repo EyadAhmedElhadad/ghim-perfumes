@@ -13,6 +13,7 @@ import CartDrawer from '@/components/CartDrawer';
 import Stardust from '@/components/Stardust';
 import SocialProof from '@/components/SocialProof';
 import AddToCartMini from '@/components/AddToCartMini';
+import BestSellersCarousel from '@/components/BestSellersCarousel';
 
 // Cache the storefront home page for 5 minutes (ISR) for fast repeat loads.
 export const revalidate = 300;
@@ -187,6 +188,8 @@ export default async function HomePage() {
             ))}
           </div>
         </section>
+
+        <BestSellersCarousel products={products} />
 
         <SocialProof />
       </main>

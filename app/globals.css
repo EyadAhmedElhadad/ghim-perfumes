@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @theme {
   /* GHIM Material-3 inspired palette */
@@ -237,21 +237,26 @@ body {
    The two identical <span>s inside .marquee-track tile so translating
    the track by -50% loops with no visible jump. */
 @keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
-
 .marquee-track {
   animation: marquee 20s linear infinite;
   will-change: transform;
 }
-
 @media (prefers-reduced-motion: reduce) {
-  .marquee-track {
-    animation: none;
-  }
+  .marquee-track { animation: none; }
+}
+
+/* Best Sellers carousel — per-card hover image crossfade.
+   Both layers are stacked; only the default shows until hover.
+   Gated behind (hover: hover) so touch devices keep the default
+   image and never trigger a broken/flashing swap. */
+.product-card .swap-default,
+.product-card .swap-hover {
+  transition: opacity 350ms ease;
+}
+@media (hover: hover) {
+  .product-card.has-hover:hover .swap-default { opacity: 0; }
+  .product-card.has-hover:hover .swap-hover { opacity: 1; }
 }

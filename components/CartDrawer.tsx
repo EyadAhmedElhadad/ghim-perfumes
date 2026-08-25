@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { useCart, selectCount, selectSubtotal } from '@/store/cart';
 import { formatPrice } from '@/lib/format';
 import ProductImage from '@/components/ProductImage';
 import { CloseIcon, GiftIcon, MinusIcon, PlusIcon } from './icons';
+import Link from 'next/link';
 
 export default function CartDrawer() {
   const items = useCart((s) => s.items);
@@ -17,7 +17,6 @@ export default function CartDrawer() {
   const count = useCart(selectCount);
   const subtotal = useCart(selectSubtotal);
   const currency = items[0]?.currency ?? 'EGP';
-  const [checkoutNote, setCheckoutNote] = useState('');
 
   return (
     <>
@@ -58,7 +57,7 @@ export default function CartDrawer() {
             </p>
             <button
               onClick={close}
-              className="gold-glow gold-gradient mt-2 rounded px-8 py-3 font-label-caps text-label-caps uppercase tracking-[0.14em] transition-colors hover:opacity-90"
+              className="gold-glow mt-2 rounded bg-secondary px-8 py-3 font-label-caps text-label-caps uppercase tracking-[0.14em] text-on-secondary transition-colors hover:bg-secondary-fixed"
             >
               Continue Shopping
             </button>
@@ -114,7 +113,7 @@ export default function CartDrawer() {
                             <PlusIcon className="h-3.5 w-3.5" />
                           </button>
                         </div>
-                         <p className="font-body-md text-sm font-semibold gold-text">
+                        <p className="font-body-md text-sm font-semibold text-secondary">
                           {formatPrice(item.price * item.qty, item.currency)}
                         </p>
                       </div>
@@ -157,22 +156,13 @@ export default function CartDrawer() {
                 Taxes and shipping calculated at checkout. 2 perfumes = 15% off
                 + free shipping.
               </p>
-              <button
-                onClick={() => {
-                  if (items.length === 0) return;
-                  setCheckoutNote(
-                    'This is a demo store — checkout is not yet connected to payments.',
-                  );
-                }}
-                className="gold-glow gold-gradient w-full rounded py-4 font-label-caps text-label-caps uppercase tracking-[0.14em] transition-colors hover:opacity-90"
+              <Link
+                href="/checkout"
+                onClick={close}
+                className="gold-glow block w-full rounded bg-secondary py-4 text-center font-label-caps text-label-caps uppercase tracking-[0.14em] text-on-secondary transition-colors hover:bg-secondary-fixed"
               >
                 Checkout
-              </button>
-              {checkoutNote && (
-                <p className="mt-2 text-center font-body-md text-[11px] text-on-surface-variant">
-                  {checkoutNote}
-                </p>
-              )}
+              </Link>
             </div>
           </>
         )}

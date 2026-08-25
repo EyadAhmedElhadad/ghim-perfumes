@@ -18,6 +18,8 @@ export type Product = {
   tagline: string;
   description: string;
   images: ProductMedia[];
+  /** Optional plain/studio shot shown on card hover. Falls back to images[0] when absent. */
+  hoverImage?: ProductMedia;
   price: number;
   compareAtPrice: number | null;
   currency: string;
@@ -59,6 +61,45 @@ export type ShippingPolicy = {
 
 export type StockStatus = 'in' | 'low' | 'out';
 
+export type OrderStatus = 'pending' | 'fulfilled' | 'cancelled';
+
+export type OrderAddress = {
+  fullName: string;
+  phone: string;
+  /** Canonical English governorate name (one of GOVERNORATES). */
+  governorate: string;
+  /** Arabic label for the selected governorate, for bilingual display. */
+  governorateAr?: string;
+  city: string;
+  addressLine: string;
+  postalCode?: string;
+  notes?: string;
+};
+
+export type OrderItem = {
+  id: string;
+  slug: string;
+  name: string;
+  price: number;
+  qty: number;
+  size: string;
+  image: string;
+};
+
+export type Order = {
+  id: string;
+  items: OrderItem[];
+  address: OrderAddress;
+  subtotal: number;
+  shipping: number;
+  total: number;
+  currency: string;
+  status: OrderStatus;
+  paymentMethod: string;
+  /** ISO timestamp string as stored in the database. */
+  createdAt: string;
+};
+
 export type AdminProduct = {
   id: string;
   name: string;
@@ -77,6 +118,8 @@ export type AdminProduct = {
   inspiredBy: string | null;
   inspiredByRetail: number | null;
   images: ProductMedia[];
+  /** Optional plain/studio shot shown on card hover. Falls back to images[0] when absent. */
+  hoverImage?: ProductMedia;
   notes: PerfumeNoteGroup;
   vibe: string;
   performance: string;
