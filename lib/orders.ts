@@ -45,12 +45,13 @@ function assertValid(input: NewOrderInput): void {
   if (!a?.governorate || !isGovernorate(a.governorate)) {
     throw new OrderValidationError('Please select a valid governorate.');
   }
-  if (!a?.city?.trim()) throw new OrderValidationError('City is required.');
   if (!a?.addressLine?.trim()) {
     throw new OrderValidationError('Address is required.');
   }
-  if (!input.paymentMethod?.trim()) {
-    throw new OrderValidationError('Payment method is required.');
+  if (input.paymentMethod !== 'Cash on Delivery') {
+    throw new OrderValidationError(
+      'Cash on Delivery is the only available payment method.',
+    );
   }
   if (!Number.isFinite(input.total) || input.total < 0) {
     throw new OrderValidationError('Invalid order total.');
@@ -106,6 +107,23 @@ export async function createOrder(input: NewOrderInput): Promise<Order> {
     ],
   );
   return order;
+}
+
+export async function updateOrderStatus(
+  id: string,
+  status: OrderStatus,
+): Promise<Order | null> {
+  const pool = getPool();
+  await ensureOrdersTable();
+  const res = await pool.query<DbOrderRow>(
+    `UPDATE orders
+     SET status = $2
+     WHERE id = $1
+     RETURNING id, items, address, governorate, subtotal, shipping, total, currency, status, payment_method, created_at`,
+    [id, status],
+  );
+  if (res.rows.length === 0) return null;
+  return rowToOrder(res.rows[0]);
 }
 
 export async function listOrders(limit = 100): Promise<Order[]> {

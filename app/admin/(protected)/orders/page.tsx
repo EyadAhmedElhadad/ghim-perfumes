@@ -1,19 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { Panel } from '@/components/admin/ui';
 import { formatPrice } from '@/lib/format';
 import type { Order } from '@/lib/types';
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  fulfilled: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  cancelled: 'bg-error-container/60 text-on-error-container border-error/40',
+  confirmed: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+  delivered: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
 };
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     let active = true;
@@ -37,6 +39,26 @@ export default function OrdersPage() {
       active = false;
     };
   }, []);
+
+  async function changeStatus(id: string, status: Order['status']) {
+    setUpdatingId(id);
+    try {
+      const res = await fetch(`/api/admin/orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to update order');
+      startTransition(() => {
+        setOrders((curr) => curr?.map((o) => (o.id === id ? data.order : o)) ?? curr);
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update order');
+    } finally {
+      setUpdatingId(null);
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -130,12 +152,15 @@ export default function OrdersPage() {
                           · {o.address.governorateAr}
                         </span>
                       ) : null}
-                      {' — '}
-                      {o.address.city}
                     </p>
                     <p className="text-sm text-on-surface-variant">
                       {o.address.addressLine}
                     </p>
+                    {o.address.detailedAddress ? (
+                      <p className="text-sm text-on-surface-variant">
+                        {o.address.detailedAddress}
+                      </p>
+                    ) : null}
                     <p className="text-sm text-on-surface-variant">
                       📞 {o.address.phone}
                     </p>
@@ -147,6 +172,23 @@ export default function OrdersPage() {
                     <p className="mt-1 text-xs text-on-surface-variant">
                       Payment: {o.paymentMethod}
                     </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(['pending', 'confirmed', 'delivered'] as const).map((status) => (
+                        <button
+                          key={status}
+                          type="button"
+                          disabled={isPending || updatingId === o.id || o.status === status}
+                          onClick={() => void changeStatus(o.id, status)}
+                          className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${
+                            o.status === status
+                              ? 'border-secondary bg-secondary/15 text-secondary'
+                              : 'border-outline-variant/40 bg-surface-container-high text-on-surface-variant hover:bg-surface-container'
+                          } disabled:cursor-not-allowed disabled:opacity-50`}
+                        >
+                          {status}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </li>

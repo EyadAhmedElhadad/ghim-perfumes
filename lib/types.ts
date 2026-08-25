@@ -61,7 +61,7 @@ export type ShippingPolicy = {
 
 export type StockStatus = 'in' | 'low' | 'out';
 
-export type OrderStatus = 'pending' | 'fulfilled' | 'cancelled';
+export type OrderStatus = 'pending' | 'confirmed' | 'delivered';
 
 export type OrderAddress = {
   fullName: string;
@@ -70,8 +70,8 @@ export type OrderAddress = {
   governorate: string;
   /** Arabic label for the selected governorate, for bilingual display. */
   governorateAr?: string;
-  city: string;
   addressLine: string;
+  detailedAddress?: string;
   postalCode?: string;
   notes?: string;
 };

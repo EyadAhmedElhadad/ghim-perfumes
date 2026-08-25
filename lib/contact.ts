@@ -1,0 +1,55 @@
+// Client-safe store contact configuration.
+//
+// The store WhatsApp number is supplied via NEXT_PUBLIC_WHATSAPP_NUMBER
+// (digits only, with or without country code, e.g. 201000000000). It is read
+// at build time so the checkout flow can hand orders off to WhatsApp.
+
+export const WHATSAPP_NUMBER = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '')
+  .replace(/[^\d]/g, '');
+
+export type WhatsAppOrderInput = {
+  id: string;
+  customerName: string;
+  phone: string;
+  governorate: string;
+  addressLine: string;
+  items: { name: string; qty: number; price: number; size?: string }[];
+  subtotal: number;
+  currency: string;
+};
+
+function formatMoney(value: number, currency: string): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+export function formatOrderMessage(o: WhatsAppOrderInput): string {
+  const lines: string[] = [];
+  lines.push('*New order — GHIM Perfumes*');
+  lines.push(`Order #: ${o.id}`);
+  lines.push(`Name: ${o.customerName}`);
+  lines.push(`Phone: ${o.phone}`);
+  lines.push(`Governorate + Address: ${o.governorate}, ${o.addressLine}`);
+  lines.push('');
+  lines.push('*Items:*');
+  for (const it of o.items) {
+    const lineTotal = it.price * it.qty;
+    lines.push(
+      `- ${it.name}${it.size ? ` (${it.size})` : ''} × ${it.qty} — ${formatMoney(
+        it.price,
+        o.currency,
+      )} each = ${formatMoney(lineTotal, o.currency)}`,
+    );
+  }
+  lines.push('');
+  lines.push(`Subtotal: ${formatMoney(o.subtotal, o.currency)}`);
+  lines.push('Payment: Cash on Delivery');
+  return lines.join('\n');
+}
+
+export function whatsappLink(message: string): string {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
