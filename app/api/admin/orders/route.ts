@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCurrentAdmin } from '@/lib/firebase/auth';
+import { getCurrentAdmin } from '@/lib/db/auth';
 import { listOrders } from '@/lib/orders';
 
 export const runtime = 'nodejs';
