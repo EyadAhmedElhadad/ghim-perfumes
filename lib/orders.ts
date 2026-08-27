@@ -48,7 +48,7 @@ function assertValid(input: NewOrderInput): void {
   if (!a?.addressLine?.trim()) {
     throw new OrderValidationError('Address is required.');
   }
-  if (input.paymentMethod !== 'Cash on Delivery') {
+  if (input.paymentMethod !== 'Cash on Delivery' && input.paymentMethod !== 'COD') {
     throw new OrderValidationError(
       'Cash on Delivery is the only available payment method.',
     );

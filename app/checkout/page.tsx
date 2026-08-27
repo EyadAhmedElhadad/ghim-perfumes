@@ -9,7 +9,7 @@ import type { OrderItem } from '@/lib/types';
 import { whatsappLink, formatOrderMessage, WHATSAPP_NUMBER } from '@/lib/contact';
 import CartDrawer from '@/components/CartDrawer';
 import ProductImage from '@/components/ProductImage';
-import { BagIcon, InfoIcon, LockIcon, TruckIcon } from '@/components/icons';
+import { ApplePayIcon, BagIcon, InfoIcon, LockIcon, MastercardIcon, TruckIcon, VisaIcon } from '@/components/icons';
 
 const inputClass =
   'w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none transition-colors focus:border-primary';
@@ -17,7 +17,7 @@ const inputClass =
 const labelClass =
   'mb-1.5 block text-xs font-medium uppercase tracking-wide text-on-surface-variant';
 
-const paymentMethod = 'Cash on Delivery';
+const paymentMethod = 'COD';
 
 function BrandHeader() {
   const open = useCart((s) => s.open);
@@ -60,6 +60,8 @@ type FormState = {
   notes: string;
   saveInfo: boolean;
   emailOffers: boolean;
+  payment: 'cod' | 'card' | 'wallet';
+  billingSame: boolean;
 };
 
 export default function CheckoutPage() {
@@ -83,6 +85,8 @@ export default function CheckoutPage() {
     notes: cartNoteInitial,
     saveInfo: false,
     emailOffers: false,
+    payment: 'cod',
+    billingSame: true,
   });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -230,6 +234,7 @@ export default function CheckoutPage() {
         total: subtotal,
         currency,
         paymentMethod,
+        billingAddressSameAsShipping: form.billingSame,
       };
 
       const res = await fetch('/api/orders', {
@@ -422,7 +427,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="sm:col-span-1">
                     <label className={labelClass} htmlFor="postalCode">
-                      Postal code
+                      Postal code (optional)
                     </label>
                     <input
                       id="postalCode"
@@ -487,6 +492,149 @@ export default function CheckoutPage() {
               <p className="mt-2 font-body-md text-xs text-on-surface-variant">
                 Free shipping on every order. Cash on Delivery available.
               </p>
+            </div>
+
+            {/* Payment */}
+            <div className="border-t border-outline-variant/60 pt-8">
+              <h2 className="font-headline-md text-lg font-semibold text-on-surface">
+                Payment
+              </h2>
+              <p className="mt-1 flex items-center gap-1.5 font-body-md text-sm text-on-surface-variant">
+                <LockIcon className="h-3.5 w-3.5 text-secondary/80" />
+                All transactions are secure and encrypted.
+              </p>
+
+              <div className="mt-4 space-y-3">
+                {/* Cash on Delivery — active & selected */}
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border bg-surface-container-low p-4 transition-colors ${
+                    form.payment === 'cod'
+                      ? 'border-secondary/50 shadow-[0_0_0_1px_rgba(212,175,55,0.35)]'
+                      : 'border-outline-variant/60'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="payment"
+                    checked={form.payment === 'cod'}
+                    onChange={() => set('payment', 'cod')}
+                    className="mt-0.5 h-4 w-4 accent-secondary"
+                  />
+                  <span className="flex-1">
+                    <span className="block font-body-md text-sm font-medium text-on-surface">
+                      Cash on Delivery
+                    </span>
+                    <span className="mt-0.5 block font-body-md text-xs text-on-surface-variant">
+                      Pay in cash upon delivery at your doorstep.
+                    </span>
+                  </span>
+                  <span className="rounded-full border border-secondary/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-secondary">
+                    Selected
+                  </span>
+                </label>
+
+                {/* Credit / Debit Card — disabled */}
+                <div className="flex items-start gap-3 rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 opacity-60">
+                  <input
+                    type="radio"
+                    name="payment"
+                    disabled
+                    className="mt-0.5 h-4 w-4 accent-secondary"
+                  />
+                  <span className="flex-1">
+                    <span className="block font-body-md text-sm font-medium text-on-surface">
+                      Credit / Debit Card
+                    </span>
+                    <span className="mt-0.5 block font-body-md text-xs text-on-surface-variant">
+                      Visa, Mastercard and more.
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <VisaIcon className="h-5 w-auto" />
+                    <MastercardIcon className="h-5 w-auto" />
+                  </span>
+                  <span className="rounded-full border border-outline-variant/60 px-2 py-0.5 text-[10px] uppercase tracking-wide text-on-surface-variant">
+                    Coming Soon
+                  </span>
+                </div>
+
+                {/* Online Wallets — disabled */}
+                <div className="flex items-start gap-3 rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 opacity-60">
+                  <input
+                    type="radio"
+                    name="payment"
+                    disabled
+                    className="mt-0.5 h-4 w-4 accent-secondary"
+                  />
+                  <span className="flex-1">
+                    <span className="block font-body-md text-sm font-medium text-on-surface">
+                      Online Wallets
+                    </span>
+                    <span className="mt-0.5 block font-body-md text-xs text-on-surface-variant">
+                      Apple Pay, Google Pay and more.
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <ApplePayIcon className="h-5 w-auto" />
+                  </span>
+                  <span className="rounded-full border border-outline-variant/60 px-2 py-0.5 text-[10px] uppercase tracking-wide text-on-surface-variant">
+                    Coming Soon
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Billing address */}
+            <div className="border-t border-outline-variant/60 pt-8">
+              <h2 className="font-headline-md text-lg font-semibold text-on-surface">
+                Billing address
+              </h2>
+              <div className="mt-4 space-y-3">
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border bg-surface-container-low p-4 transition-colors ${
+                    form.billingSame
+                      ? 'border-secondary/50 shadow-[0_0_0_1px_rgba(212,175,55,0.35)]'
+                      : 'border-outline-variant/60'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="billing"
+                    checked={form.billingSame}
+                    onChange={() => set('billingSame', true)}
+                    className="mt-0.5 h-4 w-4 accent-secondary"
+                  />
+                  <span className="font-body-md text-sm text-on-surface">
+                    Same as shipping address
+                  </span>
+                </label>
+
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border bg-surface-container-low p-4 transition-colors ${
+                    !form.billingSame
+                      ? 'border-secondary/50 shadow-[0_0_0_1px_rgba(212,175,55,0.35)]'
+                      : 'border-outline-variant/60'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="billing"
+                    checked={!form.billingSame}
+                    onChange={() => set('billingSame', false)}
+                    className="mt-0.5 h-4 w-4 accent-secondary"
+                  />
+                  <span className="font-body-md text-sm text-on-surface">
+                    Use a different billing address
+                  </span>
+                </label>
+
+                {!form.billingSame && (
+                  <div className="rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 font-body-md text-sm text-on-surface-variant">
+                    Separate billing address support is coming soon. For now, your
+                    shipping address will be used for billing.
+                  </div>
+                )}
+              </div>
             </div>
           </section>
 
