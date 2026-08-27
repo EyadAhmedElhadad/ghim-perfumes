@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import DevModeBanner from '@/components/DevModeBanner';
+import FloatingWhatsApp from '@/components/FloatingWhatsApp';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -61,6 +62,7 @@ export default function RootLayout({
       <body>
         <DevModeBanner />
         {children}
+        <FloatingWhatsApp />
       </body>
     </html>
   );
