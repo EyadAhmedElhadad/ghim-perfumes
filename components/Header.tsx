@@ -124,7 +124,8 @@ function Header() {
   }, [menuOpen]);
 
   return (
-    <header
+    <>
+      <header
       className={`sticky top-0 z-50 w-full border-b border-outline-variant/30 bg-surface-container-lowest/90 backdrop-blur-xl transition-all duration-300 ${
         scrolled ? 'py-1.5' : 'py-3'
       }`}
@@ -243,84 +244,87 @@ function Header() {
           </button>
         </div>
       </div>
+    </header>
 
-      {/* Mobile slide-in menu */}
-      {menuOpen && (
-        <div className="fixed inset-0 z-[60] md:hidden">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setMenuOpen(false)}
-            aria-hidden="true"
-          />
-          <div
-            ref={panelRef}
-            id="mobile-menu"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Main menu"
-            className="absolute right-0 top-0 flex h-full w-80 max-w-[85vw] flex-col bg-surface-container-low shadow-2xl"
-          >
-            <div className="flex items-center justify-between border-b border-outline-variant/20 px-6 py-5">
-              <span className="font-display-lg text-2xl italic gold-text">
-                Ghim
-              </span>
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                aria-label="Close menu"
-                className="text-on-surface-variant transition hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-low"
-              >
-                <CloseIcon className="h-5 w-5" />
-              </button>
-            </div>
-
-            <nav
-              aria-label="Main navigation"
-              className="flex flex-col gap-1 px-4 py-6"
+    {/* Mobile slide-in menu — rendered as a sibling of <header> so it escapes
+        the header's stacking context and overlays above all page content. */}
+      <div
+        className={`fixed inset-0 z-[9999] md:hidden transition-opacity duration-300 ${
+          menuOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+        aria-hidden={!menuOpen}
+      >
+        <div
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
+        <div
+          ref={panelRef}
+          id="mobile-menu"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Main menu"
+          inert={!menuOpen}
+          className={`absolute right-0 top-0 flex h-full w-80 max-w-[85vw] flex-col border-l border-outline-variant/40 bg-[#0a0e17] shadow-2xl transition-transform duration-300 ease-out ${
+            menuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="flex items-center justify-between border-b border-outline-variant/20 px-6 py-5">
+            <span className="font-display-lg text-2xl italic gold-text">Ghim</span>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Close menu"
+              className="text-on-surface transition hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0e17]"
             >
-              {NAV.map((n) => {
-                const active = isActive(pathname, n.href);
-                return (
-                  <Link
-                    key={n.href}
-                    href={n.href}
-                    onClick={() => setMenuOpen(false)}
-                    aria-current={active ? 'page' : undefined}
-                    className={`rounded px-4 py-3 font-body-md text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${
-                      active ? 'text-secondary' : ''
-                    }`}
-                  >
-                    {n.label}
-                  </Link>
-                );
-              })}
-            </nav>
+              <CloseIcon className="h-5 w-5" />
+            </button>
+          </div>
 
-            <div className="mt-auto flex items-center gap-6 border-t border-outline-variant/20 px-6 py-5">
-              <button
-                type="button"
-                aria-label="Search"
-                onClick={() => {
-                  setMenuOpen(false);
-                  openSearch();
-                }}
-                className="text-secondary transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
-              >
-                <SearchIcon className="h-5 w-5" />
-              </button>
-              <Link
-                href="/admin"
-                aria-label="Account"
-                onClick={() => setMenuOpen(false)}
-                className="text-secondary transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
-              >
-                <UserIcon className="h-5 w-5" />
-              </Link>
-            </div>
+          <nav aria-label="Main navigation" className="flex flex-col gap-1.5 px-4 py-6">
+            {NAV.map((n) => {
+              const active = isActive(pathname, n.href);
+              return (
+                <Link
+                  key={n.href}
+                  href={n.href}
+                  onClick={() => setMenuOpen(false)}
+                  aria-current={active ? 'page' : undefined}
+                  className={`rounded-lg px-6 py-3.5 font-body-md text-lg font-medium text-on-surface transition-colors hover:bg-surface-container-high hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${
+                    active ? 'text-secondary' : ''
+                  }`}
+                >
+                  {n.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="mt-auto flex items-center gap-6 border-t border-outline-variant/20 px-6 py-5">
+            <button
+              type="button"
+              aria-label="Search"
+              onClick={() => {
+                setMenuOpen(false);
+                openSearch();
+              }}
+              className="text-secondary transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+            >
+              <SearchIcon className="h-5 w-5" />
+            </button>
+            <Link
+              href="/admin"
+              aria-label="Account"
+              onClick={() => setMenuOpen(false)}
+              className="text-secondary transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+            >
+              <UserIcon className="h-5 w-5" />
+            </Link>
           </div>
         </div>
-      )}
-    </header>
+      </div>
+    </>
   );
 }
 
