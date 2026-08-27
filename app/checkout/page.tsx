@@ -12,10 +12,10 @@ import ProductImage from '@/components/ProductImage';
 import { BagIcon, InfoIcon, LockIcon, TruckIcon } from '@/components/icons';
 
 const inputClass =
-  'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none transition-colors focus:border-secondary focus:ring-1 focus:ring-secondary placeholder:text-neutral-400';
+  'w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none transition-colors focus:border-primary';
 
 const labelClass =
-  'mb-1.5 block text-xs font-medium uppercase tracking-wide text-neutral-500';
+  'mb-1.5 block text-xs font-medium uppercase tracking-wide text-on-surface-variant';
 
 const paymentMethod = 'Cash on Delivery';
 
@@ -23,16 +23,16 @@ function BrandHeader() {
   const open = useCart((s) => s.open);
   const count = useCart(selectCount);
   return (
-    <header className="border-b border-neutral-200 bg-white">
+    <header className="border-b border-outline-variant/60 bg-surface">
       <div className="mx-auto flex max-w-container-max items-center justify-between px-margin-mobile py-4 md:px-margin-desktop">
-        <Link href="/" className="font-headline-lg text-2xl gold-text">
+        <Link href="/" className="font-headline-md text-2xl text-secondary">
           GHIM
         </Link>
         <button
           type="button"
           onClick={open}
           aria-label="Open cart"
-          className="relative rounded-full p-2 text-neutral-900 transition-colors hover:bg-neutral-100"
+          className="rounded-full p-2 text-on-surface transition-colors hover:bg-surface-container-high"
         >
           <BagIcon className="h-6 w-6" />
           {count > 0 && (
@@ -106,19 +106,19 @@ export default function CheckoutPage() {
 
   if (placed) {
     return (
-      <div className="min-h-screen bg-neutral-50 text-neutral-900">
+      <div className="min-h-screen bg-surface text-on-surface">
         <BrandHeader />
         <main className="mx-auto flex max-w-container-max flex-col items-center px-margin-mobile py-24 text-center md:px-margin-desktop">
           <p className="text-5xl">✅</p>
-          <h1 className="mt-4 font-headline-lg text-neutral-900">Order confirmed</h1>
-          <p className="mt-2 font-body-lg text-neutral-600">
-            Thank you! Your order <span className="text-neutral-900">{placed.id}</span> has
+          <h1 className="mt-4 font-headline-lg text-on-surface">Order confirmed</h1>
+          <p className="mt-2 font-body-lg text-on-surface-variant">
+            Thank you! Your order <span className="text-on-surface">{placed.id}</span> has
             been placed.
           </p>
-          <p className="mt-1 font-body-md text-neutral-600">
+          <p className="mt-1 font-body-md text-on-surface-variant">
             Total due on delivery: {formatPrice(placed.total, currency)}
           </p>
-          <p className="mt-3 max-w-md font-body-md text-neutral-600">
+          <p className="mt-3 max-w-md font-body-md text-on-surface-variant">
             We&apos;ll contact you to confirm the delivery details.
           </p>
 
@@ -132,9 +132,9 @@ export default function CheckoutPage() {
               Open WhatsApp order message
             </a>
           ) : (
-            <p className="mt-6 rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-600">
+            <p className="mt-6 rounded-lg border border-outline-variant/60 bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
               WhatsApp number is not configured yet. Please set
-              <code className="mx-1 rounded bg-neutral-100 px-1.5 py-0.5 text-xs">
+              <code className="mx-1 rounded bg-surface-container-high px-1.5 py-0.5 text-xs">
                 NEXT_PUBLIC_WHATSAPP_NUMBER
               </code>
               to enable the handoff.
@@ -155,11 +155,11 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-neutral-50 text-neutral-900">
+      <div className="min-h-screen bg-surface text-on-surface">
         <BrandHeader />
         <main className="mx-auto flex max-w-container-max flex-col items-center px-margin-mobile py-24 text-center md:px-margin-desktop">
           <p className="text-5xl">🛍️</p>
-          <h1 className="mt-4 font-headline-lg text-neutral-900">Your bag is empty</h1>
+          <h1 className="mt-4 font-headline-lg text-on-surface">Your bag is empty</h1>
           <Link
             href="/products"
             className="gold-glow mt-8 rounded bg-secondary px-8 py-3 font-label-caps text-label-caps uppercase tracking-[0.14em] text-on-secondary transition-colors hover:bg-secondary-fixed"
@@ -267,7 +267,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900">
+    <div className="min-h-screen bg-surface text-on-surface">
       <BrandHeader />
       <CartDrawer />
 
@@ -278,7 +278,7 @@ export default function CheckoutPage() {
             {/* Contact */}
             <div>
               <div className="flex items-center justify-between">
-                <h2 className="font-headline-md text-lg font-semibold text-neutral-900">
+                <h2 className="font-headline-md text-lg font-semibold text-on-surface">
                   Contact
                 </h2>
                 <button
@@ -302,12 +302,12 @@ export default function CheckoutPage() {
                     placeholder="e.g. yasmin@example.com"
                   />
                 </div>
-                <label className="flex items-center gap-2 font-body-md text-sm text-neutral-600">
+                <label className="flex items-center gap-2 font-body-md text-sm text-on-surface-variant">
                   <input
                     type="checkbox"
                     checked={form.emailOffers}
                     onChange={(e) => set('emailOffers', e.target.checked)}
-                    className="h-4 w-4 rounded border-neutral-300 text-secondary focus:ring-secondary"
+                    className="h-4 w-4 rounded border-outline-variant text-secondary focus:ring-secondary"
                   />
                   Email me with news and offers
                 </label>
@@ -315,8 +315,8 @@ export default function CheckoutPage() {
             </div>
 
             {/* Delivery */}
-            <div className="border-t border-neutral-200 pt-8">
-              <h2 className="font-headline-md text-lg font-semibold text-neutral-900">
+            <div className="border-t border-outline-variant/60 pt-8">
+              <h2 className="font-headline-md text-lg font-semibold text-on-surface">
                 Delivery
               </h2>
               <div className="mt-4 grid gap-4">
@@ -448,7 +448,7 @@ export default function CheckoutPage() {
                       inputMode="tel"
                     />
                     <span
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant"
                       title="We'll use this to coordinate delivery."
                     >
                       <InfoIcon className="h-4 w-4" />
@@ -456,12 +456,12 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                <label className="flex items-center gap-2 font-body-md text-sm text-neutral-600">
+                <label className="flex items-center gap-2 font-body-md text-sm text-on-surface-variant">
                   <input
                     type="checkbox"
                     checked={form.saveInfo}
                     onChange={(e) => set('saveInfo', e.target.checked)}
-                    className="h-4 w-4 rounded border-neutral-300 text-secondary focus:ring-secondary"
+                    className="h-4 w-4 rounded border-outline-variant text-secondary focus:ring-secondary"
                   />
                   Save this information for next time
                 </label>
@@ -469,22 +469,22 @@ export default function CheckoutPage() {
             </div>
 
             {/* Shipping method */}
-            <div className="border-t border-neutral-200 pt-8">
-              <h2 className="font-headline-md text-lg font-semibold text-neutral-900">
+            <div className="border-t border-outline-variant/60 pt-8">
+              <h2 className="font-headline-md text-lg font-semibold text-on-surface">
                 Shipping method
               </h2>
               <div className="mt-4 flex items-center justify-between rounded-xl border border-secondary bg-secondary/5 p-4">
                 <div className="flex items-center gap-3">
                   <TruckIcon className="h-5 w-5 text-secondary" />
-                  <span className="font-body-md text-sm font-medium text-neutral-900">
+                  <span className="font-body-md text-sm font-medium text-on-surface">
                     Default
                   </span>
                 </div>
-                <span className="font-body-md text-sm font-medium text-neutral-700">
+                <span className="font-body-md text-sm font-medium text-on-surface-variant">
                   Free
                 </span>
               </div>
-              <p className="mt-2 font-body-md text-xs text-neutral-500">
+              <p className="mt-2 font-body-md text-xs text-on-surface-variant">
                 Free shipping on every order. Cash on Delivery available.
               </p>
             </div>
@@ -492,31 +492,31 @@ export default function CheckoutPage() {
 
           {/* Right column — order summary */}
           <section>
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm lg:sticky lg:top-6">
-              <h2 className="mb-5 font-headline-md text-lg font-semibold text-neutral-900">
+            <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-low p-6 lg:sticky lg:top-6">
+              <h2 className="mb-5 font-headline-md text-lg font-semibold text-on-surface">
                 Order summary
               </h2>
 
               <ul className="space-y-4">
                 {items.map((i) => (
                   <li key={i.id} className="flex items-center gap-3">
-                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-outline-variant/60 bg-surface-container-lowest">
                       <ProductImage
                         src={i.image}
                         alt={i.name}
                         className="h-full w-full object-cover"
                       />
-                      <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-neutral-900 px-1 text-[10px] font-semibold text-white">
+                      <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-semibold text-on-secondary">
                         {i.qty}
                       </span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-body-md text-sm font-medium text-neutral-900">
+                      <p className="truncate font-body-md text-sm font-medium text-on-surface">
                         {i.name}
                       </p>
-                      <p className="font-body-md text-xs text-neutral-500">{i.size}</p>
+                      <p className="font-body-md text-xs text-on-surface-variant">{i.size}</p>
                     </div>
-                    <span className="font-body-md text-sm font-medium text-neutral-900">
+                    <span className="font-body-md text-sm font-medium text-on-surface">
                       {formatPrice(i.price * i.qty, i.currency)}
                     </span>
                   </li>
@@ -526,7 +526,7 @@ export default function CheckoutPage() {
               {/* Discount code */}
               <div className="mt-5 flex gap-2">
                 <input
-                  className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none transition-colors focus:border-secondary focus:ring-1 focus:ring-secondary placeholder:text-neutral-400"
+                  className="flex-1 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none transition-colors focus:border-primary"
                   value={discountCode}
                   onChange={(e) => setDiscountCode(e.target.value)}
                   placeholder="Discount code"
@@ -534,25 +534,25 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={applyDiscount}
-                  className="rounded-lg border border-neutral-300 px-4 py-2.5 font-body-md text-sm font-medium text-neutral-700 transition-colors hover:border-secondary hover:text-secondary"
+                  className="rounded-lg border border-outline-variant px-4 py-2.5 font-body-md text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
                 >
                   Apply
                 </button>
               </div>
               {discountMsg && (
-                <p className="mt-2 font-body-md text-xs text-neutral-500">{discountMsg}</p>
+                <p className="mt-2 font-body-md text-xs text-on-surface-variant">{discountMsg}</p>
               )}
 
-              <div className="mt-5 space-y-2 border-t border-neutral-200 pt-4">
-                <div className="flex justify-between font-body-md text-sm text-neutral-600">
+              <div className="mt-5 space-y-2 border-t border-outline-variant/60 pt-4">
+                <div className="flex justify-between font-body-md text-sm text-on-surface-variant">
                   <span>Subtotal</span>
                   <span>{formatPrice(subtotal, currency)}</span>
                 </div>
-                <div className="flex items-center justify-between font-body-md text-sm text-neutral-600">
+                <div className="flex items-center justify-between font-body-md text-sm text-on-surface-variant">
                   <span className="flex items-center gap-1">
                     Shipping
                     <span
-                      className="text-neutral-400"
+                      className="text-on-surface-variant"
                       title="Free shipping on every order."
                     >
                       <InfoIcon className="h-3.5 w-3.5" />
@@ -560,14 +560,14 @@ export default function CheckoutPage() {
                   </span>
                   <span>Free</span>
                 </div>
-                <div className="mt-3 flex items-center justify-between border-t border-neutral-200 pt-3 font-headline-md text-lg font-semibold text-neutral-900">
+                <div className="mt-3 flex items-center justify-between border-t border-outline-variant/60 pt-3 font-headline-md text-lg font-semibold text-on-surface">
                   <span>Total</span>
                   <span className="text-secondary">{formatPrice(subtotal, currency)}</span>
                 </div>
               </div>
 
               {error && (
-                <p className="mt-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <p className="mt-4 rounded-lg bg-error-container/60 px-3 py-2 text-sm text-on-error-container">
                   {error}
                 </p>
               )}
@@ -580,7 +580,7 @@ export default function CheckoutPage() {
                 {busy ? 'Placing order…' : 'Place order'}
               </button>
 
-              <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-neutral-500">
+              <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-on-surface-variant">
                 <LockIcon className="h-3.5 w-3.5" />
                 Secured checkout · Pay with {paymentMethod} on delivery
               </p>

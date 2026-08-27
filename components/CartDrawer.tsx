@@ -54,8 +54,8 @@ export default function CartDrawer() {
         }`}
         aria-label="Shopping bag"
       >
-        <div className="flex items-center justify-between border-b border-outline-variant/20 px-5 py-4">
-          <h2 className="font-headline-md text-on-background">Cart</h2>
+        <div className="flex items-center justify-between border-b border-outline-variant/60 px-5 py-4">
+          <h2 className="font-headline-md text-on-surface">Cart</h2>
           <button
             onClick={close}
             aria-label="Close cart"
@@ -67,7 +67,7 @@ export default function CartDrawer() {
 
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-            <p className="font-headline-lg text-on-background">Your bag is empty.</p>
+            <p className="font-headline-lg text-on-surface">Your bag is empty.</p>
             <p className="font-body-md text-sm text-on-surface-variant">
               Add a fragrance to get 30% off + free shipping.
             </p>
@@ -81,7 +81,7 @@ export default function CartDrawer() {
         ) : (
           <>
             {/* Free shipping / discount progress */}
-            <div className="border-b border-outline-variant/20 px-5 py-4">
+            <div className="border-b border-outline-variant/60 px-5 py-4">
               <div className="flex items-center gap-2">
                 <TruckIcon className="h-4 w-4 shrink-0 text-secondary" />
                 <p className="font-body-md text-xs text-on-surface-variant">
@@ -100,7 +100,7 @@ export default function CartDrawer() {
               <ul className="space-y-4">
                 {items.map((item) => (
                   <li key={item.id} className="flex gap-4">
-                    <div className="h-20 w-16 shrink-0 overflow-hidden rounded-xl border border-outline-variant/30 bg-surface-container-lowest">
+                    <div className="h-20 w-16 shrink-0 overflow-hidden rounded-xl border border-outline-variant/60 bg-surface-container-lowest">
                       <ProductImage
                         src={item.image}
                         alt={item.name}
@@ -110,7 +110,7 @@ export default function CartDrawer() {
                     <div className="flex flex-1 flex-col">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="font-body-md text-sm font-semibold text-on-background">
+                          <p className="font-body-md text-sm font-semibold text-on-surface">
                             {item.name}
                           </p>
                           <p className="font-body-md text-xs text-on-surface-variant">
@@ -126,11 +126,11 @@ export default function CartDrawer() {
                         </button>
                       </div>
                       <div className="mt-2 flex items-center justify-between">
-                        <div className="flex items-center rounded-full border border-outline-variant/40 bg-surface-container-lowest">
+                        <div className="flex items-center rounded-full border border-outline-variant bg-surface-container-low">
                           <button
                             onClick={() => setQty(item.id, item.qty - 1)}
                             aria-label="Decrease quantity"
-                            className="p-1.5 text-on-background hover:text-secondary"
+                            className="p-1.5 text-on-surface hover:text-secondary"
                           >
                             <MinusIcon className="h-3.5 w-3.5" />
                           </button>
@@ -140,7 +140,7 @@ export default function CartDrawer() {
                           <button
                             onClick={() => setQty(item.id, item.qty + 1)}
                             aria-label="Increase quantity"
-                            className="p-1.5 text-on-background hover:text-secondary"
+                            className="p-1.5 text-on-surface hover:text-secondary"
                           >
                             <PlusIcon className="h-3.5 w-3.5" />
                           </button>
@@ -159,13 +159,13 @@ export default function CartDrawer() {
                 <button
                   type="button"
                   onClick={() => setGiftNote({ enabled: true })}
-                  className="mt-5 flex w-full items-center gap-3 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-3 text-left transition-colors hover:border-secondary/50"
+                  className="mt-5 flex w-full items-center gap-3 rounded-xl border border-outline-variant/60 bg-surface-container-low p-3 text-left transition-colors hover:border-secondary/50"
                 >
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-secondary/15 text-secondary">
                     <GiftIcon className="h-5 w-5" />
                   </span>
                   <span className="flex-1">
-                    <span className="block font-body-md text-sm font-semibold text-on-background">
+                    <span className="block font-body-md text-sm font-semibold text-on-surface">
                       Gift note
                     </span>
                     <span className="block font-body-md text-xs text-on-surface-variant">
@@ -202,17 +202,17 @@ export default function CartDrawer() {
                     maxLength={200}
                     rows={2}
                     placeholder="Write your gift message…"
-                    className="mt-2 w-full resize-none rounded-lg border border-outline-variant/40 bg-surface-container-lowest px-3 py-2 font-body-md text-sm text-on-background outline-none focus:border-secondary"
+                    className="mt-2 w-full resize-none rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 font-body-md text-sm text-on-surface outline-none transition-colors focus:border-primary placeholder:text-on-surface-variant/50"
                   />
                 </div>
               )}
 
               {/* Note accordion */}
-              <div className="mt-5 rounded-xl border border-outline-variant/30 bg-surface-container-lowest">
+              <div className="mt-5 rounded-xl border border-outline-variant/60 bg-surface-container-low">
                 <button
                   type="button"
                   onClick={() => setNoteOpen((v) => !v)}
-                  className="flex w-full items-center justify-between px-4 py-3 font-body-md text-sm text-on-background"
+                  className="flex w-full items-center justify-between px-4 py-3 font-body-md text-sm text-on-surface"
                 >
                   <span>Add note</span>
                   <span
@@ -231,19 +231,19 @@ export default function CartDrawer() {
                       maxLength={300}
                       rows={3}
                       placeholder="Add a note for your order (optional)…"
-                      className="w-full resize-none rounded-lg border border-outline-variant/40 bg-surface-container-lowest px-3 py-2 font-body-md text-sm text-on-background outline-none focus:border-secondary"
+                      className="w-full resize-none rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 font-body-md text-sm text-on-surface outline-none transition-colors focus:border-primary placeholder:text-on-surface-variant/50"
                     />
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="border-t border-outline-variant/20 px-5 py-4">
+            <div className="border-t border-outline-variant/60 px-5 py-4">
               <div className="mb-3 flex items-center justify-between">
                 <span className="font-body-md text-sm text-on-surface-variant">
                   Estimated total
                 </span>
-                <span className="font-headline-md text-lg font-semibold text-on-background">
+                <span className="font-headline-md text-lg font-semibold text-on-surface">
                   {formatPrice(subtotal, currency)}
                 </span>
               </div>
@@ -257,7 +257,7 @@ export default function CartDrawer() {
               <button
                 type="button"
                 onClick={close}
-                className="mt-2 block w-full rounded border border-outline-variant/50 py-3 text-center font-label-caps text-label-caps uppercase tracking-[0.14em] text-on-surface-variant transition-colors hover:border-secondary hover:text-secondary"
+                className="mt-2 block w-full rounded border border-outline-variant py-3 text-center font-label-caps text-label-caps uppercase tracking-[0.14em] text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
               >
                 Continue Shopping
               </button>
