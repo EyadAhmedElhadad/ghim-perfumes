@@ -20,6 +20,8 @@ export type WhatsAppOrderInput = {
   addressLine: string;
   items: { name: string; qty: number; price: number; size?: string }[];
   subtotal: number;
+  shipping: number;
+  total: number;
   currency: string;
 };
 
@@ -51,6 +53,10 @@ export function formatOrderMessage(o: WhatsAppOrderInput): string {
   }
   lines.push('');
   lines.push(`Subtotal: ${formatMoney(o.subtotal, o.currency)}`);
+  if (o.shipping > 0) {
+    lines.push(`Shipping: ${formatMoney(o.shipping, o.currency)}`);
+  }
+  lines.push(`Total: ${formatMoney(o.total, o.currency)}`);
   lines.push('Payment: Cash on Delivery');
   return lines.join('\n');
 }

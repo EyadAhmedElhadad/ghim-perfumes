@@ -23,6 +23,10 @@ export type SiteSettings = {
   copyrightText: string;
   seoTitle: string;
   seoDescription: string;
+  // Per-governorate delivery fees (EGP). A missing governorate falls back to
+  // `defaultShippingFee`. Admins edit these from the settings page.
+  defaultShippingFee: number;
+  shippingFees: Record<string, number>;
 };
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -37,6 +41,8 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   seoTitle: 'GHIM | High-End Middle Eastern Fragrance House',
   seoDescription:
     'Luxury Middle Eastern fragrances composed for the hours between dusk and dawn.',
+  defaultShippingFee: 0,
+  shippingFees: {},
 };
 
 const DEMO_DIR = path.join(process.cwd(), 'data');
@@ -79,9 +85,42 @@ async function ensureTable(): Promise<void> {
       seo_description TEXT NOT NULL DEFAULT ''
     );
   `;
+  // Shipping config is a flexible map, so it lives in a single JSONB column.
+  await sql`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS shipping_config JSONB`;
+}
+
+function parseShippingConfig(raw: unknown): {
+  defaultFee: number;
+  fees: Record<string, number>;
+} {
+  let defaultFee = 0;
+  const fees: Record<string, number> = {};
+  if (!raw) return { defaultFee, fees };
+  const cfg = typeof raw === 'string' ? safeJsonParse(raw) : raw;
+  if (cfg && typeof cfg === 'object') {
+    const df = Number((cfg as Record<string, unknown>).defaultFee);
+    if (Number.isFinite(df)) defaultFee = df;
+    const f = (cfg as Record<string, unknown>).fees;
+    if (f && typeof f === 'object') {
+      for (const [k, v] of Object.entries(f as Record<string, unknown>)) {
+        const n = Number(v);
+        if (Number.isFinite(n) && n >= 0) fees[k] = n;
+      }
+    }
+  }
+  return { defaultFee, fees };
+}
+
+function safeJsonParse(s: string): unknown {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
 }
 
 function rowToSettings(row: Record<string, unknown>): SiteSettings {
+  const { defaultFee, fees } = parseShippingConfig(row.shipping_config);
   return {
     brandName: String(row.brand_name ?? ''),
     instagramUrl: String(row.instagram_url ?? ''),
@@ -92,6 +131,8 @@ function rowToSettings(row: Record<string, unknown>): SiteSettings {
     copyrightText: String(row.copyright_text ?? ''),
     seoTitle: String(row.seo_title ?? ''),
     seoDescription: String(row.seo_description ?? ''),
+    defaultShippingFee: defaultFee,
+    shippingFees: fees,
   };
 }
 
@@ -112,10 +153,15 @@ async function saveNeon(data: SiteSettings): Promise<void> {
   await sql`
     INSERT INTO site_settings (
       id, brand_name, instagram_url, whatsapp_number, contact_email,
-      contact_phone, footer_text, copyright_text, seo_title, seo_description
+      contact_phone, footer_text, copyright_text, seo_title, seo_description,
+      shipping_config
     ) VALUES (
       'global', ${data.brandName}, ${data.instagramUrl}, ${data.whatsappNumber}, ${data.contactEmail},
-      ${data.contactPhone}, ${data.footerText}, ${data.copyrightText}, ${data.seoTitle}, ${data.seoDescription}
+      ${data.contactPhone}, ${data.footerText}, ${data.copyrightText}, ${data.seoTitle}, ${data.seoDescription},
+      ${JSON.stringify({
+        defaultFee: data.defaultShippingFee,
+        fees: data.shippingFees,
+      })}::jsonb
     )
     ON CONFLICT (id) DO UPDATE SET
       brand_name = EXCLUDED.brand_name,
@@ -126,7 +172,8 @@ async function saveNeon(data: SiteSettings): Promise<void> {
       footer_text = EXCLUDED.footer_text,
       copyright_text = EXCLUDED.copyright_text,
       seo_title = EXCLUDED.seo_title,
-      seo_description = EXCLUDED.seo_description
+      seo_description = EXCLUDED.seo_description,
+      shipping_config = EXCLUDED.shipping_config
   `;
 }
 

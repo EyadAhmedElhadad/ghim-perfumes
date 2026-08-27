@@ -7,7 +7,7 @@ import {
   type SiteSettings,
 } from '@/lib/content';
 
-const STRING_FIELDS: (keyof SiteSettings)[] = [
+const STRING_FIELDS = [
   'brandName',
   'instagramUrl',
   'whatsappNumber',
@@ -17,7 +17,7 @@ const STRING_FIELDS: (keyof SiteSettings)[] = [
   'copyrightText',
   'seoTitle',
   'seoDescription',
-];
+] as const;
 
 // GET — current site-wide settings (admin only).
 export async function GET() {
@@ -54,6 +54,38 @@ export async function PUT(req: NextRequest) {
       );
     }
     patch[field] = obj[field] as string;
+  }
+
+  // Shipping configuration — structured (number + governorate fee map).
+  if (obj.defaultShippingFee !== undefined) {
+    const n = Number(obj.defaultShippingFee);
+    if (!Number.isFinite(n) || n < 0) {
+      return NextResponse.json(
+        { error: 'Default shipping fee must be a non-negative number' },
+        { status: 400 },
+      );
+    }
+    patch.defaultShippingFee = n;
+  }
+  if (obj.shippingFees !== undefined) {
+    if (
+      typeof obj.shippingFees !== 'object' ||
+      obj.shippingFees === null ||
+      Array.isArray(obj.shippingFees)
+    ) {
+      return NextResponse.json(
+        { error: 'shippingFees must be an object' },
+        { status: 400 },
+      );
+    }
+    const fees: Record<string, number> = {};
+    for (const [k, v] of Object.entries(
+      obj.shippingFees as Record<string, unknown>,
+    )) {
+      const n = Number(v);
+      if (Number.isFinite(n) && n >= 0) fees[k] = n;
+    }
+    patch.shippingFees = fees;
   }
 
   const settings = await updateSiteSettings(patch);

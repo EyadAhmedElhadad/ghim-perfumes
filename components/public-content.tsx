@@ -12,6 +12,8 @@ export type PublicSiteSettings = {
   copyrightText: string;
   seoTitle: string;
   seoDescription: string;
+  defaultShippingFee: number;
+  shippingFees: Record<string, number>;
 };
 
 export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
@@ -26,6 +28,8 @@ export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
   seoTitle: 'GHIM | High-End Middle Eastern Fragrance House',
   seoDescription:
     'Luxury Middle Eastern fragrances composed for the hours between dusk and dawn.',
+  defaultShippingFee: 0,
+  shippingFees: {},
 };
 
 type PublicContent = {

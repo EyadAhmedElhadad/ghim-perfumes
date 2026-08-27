@@ -9,6 +9,7 @@ import type { OrderItem } from '@/lib/types';
 import { whatsappLink, formatOrderMessage, WHATSAPP_NUMBER } from '@/lib/contact';
 import CartDrawer from '@/components/CartDrawer';
 import ProductImage from '@/components/ProductImage';
+import { usePublicContent } from '@/components/public-content';
 import { ApplePayIcon, BagIcon, InfoIcon, LockIcon, MastercardIcon, TruckIcon, VisaIcon } from '@/components/icons';
 
 const inputClass =
@@ -70,6 +71,7 @@ export default function CheckoutPage() {
   const clear = useCart((s) => s.clear);
   const cartNoteInitial = useCart((s) => s.cartNote);
   const currency = items[0]?.currency ?? 'EGP';
+  const { siteSettings } = usePublicContent();
 
   const [form, setForm] = useState<FormState>({
     email: '',
@@ -88,6 +90,15 @@ export default function CheckoutPage() {
     payment: 'cod',
     billingSame: true,
   });
+
+  const shippingFees = siteSettings.shippingFees ?? {};
+  const defaultShippingFee = siteSettings.defaultShippingFee ?? 0;
+  const shipping =
+    form.governorate && shippingFees[form.governorate] != null
+      ? Number(shippingFees[form.governorate])
+      : defaultShippingFee;
+  const orderTotal = subtotal + shipping;
+
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [discountCode, setDiscountCode] = useState('');
@@ -230,8 +241,8 @@ export default function CheckoutPage() {
           notes: form.notes.trim() || undefined,
         },
         subtotal,
-        shipping: 0,
-        total: subtotal,
+        shipping,
+        total: orderTotal,
         currency,
         paymentMethod,
         billingAddressSameAsShipping: form.billingSame,
@@ -255,6 +266,8 @@ export default function CheckoutPage() {
         }${form.city.trim() ? `, ${form.city.trim()}` : ''}`,
         items: orderItems,
         subtotal,
+        shipping,
+        total: orderTotal,
         currency,
       });
 
@@ -486,11 +499,11 @@ export default function CheckoutPage() {
                   </span>
                 </div>
                 <span className="font-body-md text-sm font-medium text-on-surface-variant">
-                  Free
+                  {shipping > 0 ? formatPrice(shipping, currency) : 'Free'}
                 </span>
               </div>
               <p className="mt-2 font-body-md text-xs text-on-surface-variant">
-                Free shipping on every order. Cash on Delivery available.
+                Delivery fee is calculated by governorate. Cash on Delivery available.
               </p>
             </div>
 
@@ -701,16 +714,16 @@ export default function CheckoutPage() {
                     Shipping
                     <span
                       className="text-on-surface-variant"
-                      title="Free shipping on every order."
+                      title="Delivery fee is calculated by governorate."
                     >
                       <InfoIcon className="h-3.5 w-3.5" />
                     </span>
                   </span>
-                  <span>Free</span>
+                  <span>{shipping > 0 ? formatPrice(shipping, currency) : 'Free'}</span>
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-outline-variant/60 pt-3 font-headline-md text-lg font-semibold text-on-surface">
                   <span>Total</span>
-                  <span className="text-secondary">{formatPrice(subtotal, currency)}</span>
+                  <span className="text-secondary">{formatPrice(orderTotal, currency)}</span>
                 </div>
               </div>
 
