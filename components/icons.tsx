@@ -160,6 +160,34 @@ export const AmexIcon = (p: P) => (
   </svg>
 );
 
+export const TrashIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" />
+    <path d="M10 11v6M14 11v6" />
+  </svg>
+);
+
+export const InfoIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5M12 8h.01" />
+  </svg>
+);
+
+export const TagIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9z" />
+    <circle cx="8" cy="8" r="1.4" />
+  </svg>
+);
+
+export const LockIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="5" y="11" width="14" height="9" rx="2" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+  </svg>
+);
+
 export const BottleIcon = (p: P) => (
   <svg {...base} {...p}>
     <path d="M10 2h4v3l1 2v2H9l1-2z" />

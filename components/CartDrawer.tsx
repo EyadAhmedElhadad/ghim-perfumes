@@ -1,10 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import { useCart, selectCount, selectSubtotal } from '@/store/cart';
 import { formatPrice } from '@/lib/format';
 import ProductImage from '@/components/ProductImage';
-import { CloseIcon, GiftIcon, MinusIcon, PlusIcon } from './icons';
+import {
+  CloseIcon,
+  GiftIcon,
+  MinusIcon,
+  PlusIcon,
+  TrashIcon,
+  TruckIcon,
+} from './icons';
 import Link from 'next/link';
+
+const PROMO_THRESHOLD = 2;
 
 export default function CartDrawer() {
   const items = useCart((s) => s.items);
@@ -14,9 +24,20 @@ export default function CartDrawer() {
   const remove = useCart((s) => s.remove);
   const giftNote = useCart((s) => s.giftNote);
   const setGiftNote = useCart((s) => s.setGiftNote);
+  const cartNote = useCart((s) => s.cartNote);
+  const setCartNote = useCart((s) => s.setCartNote);
   const count = useCart(selectCount);
   const subtotal = useCart(selectSubtotal);
   const currency = items[0]?.currency ?? 'EGP';
+
+  const [noteOpen, setNoteOpen] = useState(false);
+
+  const remaining = Math.max(0, PROMO_THRESHOLD - count);
+  const progress = Math.min(1, count / PROMO_THRESHOLD);
+  const promoCopy =
+    remaining > 0
+      ? `Add ${remaining} more perfume${remaining > 1 ? 's' : ''} to get 30% OFF + Free Shipping`
+      : "You've unlocked 30% OFF + Free Shipping!";
 
   return (
     <>
@@ -34,16 +55,11 @@ export default function CartDrawer() {
         aria-label="Shopping bag"
       >
         <div className="flex items-center justify-between border-b border-outline-variant/20 px-5 py-4">
-          <h2 className="font-headline-md text-on-background">
-            Your Bag{' '}
-            <span className="font-body-md text-sm font-normal text-on-surface-variant">
-              ({count})
-            </span>
-          </h2>
+          <h2 className="font-headline-md text-on-background">Cart</h2>
           <button
             onClick={close}
-            aria-label="Close bag"
-            className="text-on-surface-variant hover:text-secondary"
+            aria-label="Close cart"
+            className="rounded-full p-1.5 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-secondary"
           >
             <CloseIcon className="h-5 w-5" />
           </button>
@@ -51,7 +67,7 @@ export default function CartDrawer() {
 
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-            <p className="font-headline-lg">Your bag is empty.</p>
+            <p className="font-headline-lg text-on-background">Your bag is empty.</p>
             <p className="font-body-md text-sm text-on-surface-variant">
               Add a fragrance to get 30% off + free shipping.
             </p>
@@ -64,11 +80,27 @@ export default function CartDrawer() {
           </div>
         ) : (
           <>
+            {/* Free shipping / discount progress */}
+            <div className="border-b border-outline-variant/20 px-5 py-4">
+              <div className="flex items-center gap-2">
+                <TruckIcon className="h-4 w-4 shrink-0 text-secondary" />
+                <p className="font-body-md text-xs text-on-surface-variant">
+                  {promoCopy}
+                </p>
+              </div>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high">
+                <div
+                  className="h-full rounded-full bg-secondary transition-all duration-500"
+                  style={{ width: `${Math.round(progress * 100)}%` }}
+                />
+              </div>
+            </div>
+
             <div className="hide-scrollbar flex-1 overflow-y-auto px-5 py-4">
               <ul className="space-y-4">
                 {items.map((item) => (
                   <li key={item.id} className="flex gap-4">
-                    <div className="h-20 w-16 shrink-0 overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container-lowest">
+                    <div className="h-20 w-16 shrink-0 overflow-hidden rounded-xl border border-outline-variant/30 bg-surface-container-lowest">
                       <ProductImage
                         src={item.image}
                         alt={item.name}
@@ -88,9 +120,9 @@ export default function CartDrawer() {
                         <button
                           onClick={() => remove(item.id)}
                           aria-label={`Remove ${item.name}`}
-                          className="font-body-md text-xs text-on-surface-variant underline underline-offset-2 hover:text-error"
+                          className="rounded-full p-1 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-error"
                         >
-                          Remove
+                          <TrashIcon className="h-4 w-4" />
                         </button>
                       </div>
                       <div className="mt-2 flex items-center justify-between">
@@ -122,12 +154,45 @@ export default function CartDrawer() {
                 ))}
               </ul>
 
+              {/* Make it a Gift upsell */}
+              {!giftNote.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setGiftNote({ enabled: true })}
+                  className="mt-5 flex w-full items-center gap-3 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-3 text-left transition-colors hover:border-secondary/50"
+                >
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-secondary/15 text-secondary">
+                    <GiftIcon className="h-5 w-5" />
+                  </span>
+                  <span className="flex-1">
+                    <span className="block font-body-md text-sm font-semibold text-on-background">
+                      Gift note
+                    </span>
+                    <span className="block font-body-md text-xs text-on-surface-variant">
+                      +{formatPrice(50, currency)}
+                    </span>
+                  </span>
+                  <span className="rounded-full border border-secondary/50 px-3 py-1 font-label-caps text-xs uppercase tracking-[0.14em] text-secondary">
+                    + Add
+                  </span>
+                </button>
+              )}
+
               {giftNote.enabled && (
-                <div className="mt-5 rounded-lg border border-secondary/30 bg-secondary/10 p-4">
-                  <p className="flex items-center gap-2 font-label-caps text-xs uppercase tracking-[0.14em] text-secondary">
-                    <GiftIcon className="h-4 w-4" />
-                    Gift Note
-                  </p>
+                <div className="mt-5 rounded-xl border border-secondary/30 bg-secondary/10 p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="flex items-center gap-2 font-label-caps text-xs uppercase tracking-[0.14em] text-secondary">
+                      <GiftIcon className="h-4 w-4" />
+                      Gift Note
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setGiftNote({ enabled: false })}
+                      className="font-body-md text-xs text-on-surface-variant underline underline-offset-2 hover:text-error"
+                    >
+                      Remove
+                    </button>
+                  </div>
                   <p className="mt-2 font-body-md text-sm italic leading-6 text-on-surface-variant">
                     “{giftNote.message.trim() || 'Your message will appear here…'}”
                   </p>
@@ -137,32 +202,65 @@ export default function CartDrawer() {
                     maxLength={200}
                     rows={2}
                     placeholder="Write your gift message…"
-                    className="mt-2 w-full resize-none rounded border border-outline-variant/40 bg-surface-container-lowest px-3 py-2 font-body-md text-sm text-on-background outline-none focus:border-secondary"
+                    className="mt-2 w-full resize-none rounded-lg border border-outline-variant/40 bg-surface-container-lowest px-3 py-2 font-body-md text-sm text-on-background outline-none focus:border-secondary"
                   />
                 </div>
               )}
+
+              {/* Note accordion */}
+              <div className="mt-5 rounded-xl border border-outline-variant/30 bg-surface-container-lowest">
+                <button
+                  type="button"
+                  onClick={() => setNoteOpen((v) => !v)}
+                  className="flex w-full items-center justify-between px-4 py-3 font-body-md text-sm text-on-background"
+                >
+                  <span>Add note</span>
+                  <span
+                    className={`text-on-surface-variant transition-transform ${
+                      noteOpen ? 'rotate-180' : ''
+                    }`}
+                  >
+                    ⌄
+                  </span>
+                </button>
+                {noteOpen && (
+                  <div className="px-4 pb-4">
+                    <textarea
+                      value={cartNote}
+                      onChange={(e) => setCartNote(e.target.value)}
+                      maxLength={300}
+                      rows={3}
+                      placeholder="Add a note for your order (optional)…"
+                      className="w-full resize-none rounded-lg border border-outline-variant/40 bg-surface-container-lowest px-3 py-2 font-body-md text-sm text-on-background outline-none focus:border-secondary"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="border-t border-outline-variant/20 px-5 py-4">
               <div className="mb-3 flex items-center justify-between">
                 <span className="font-body-md text-sm text-on-surface-variant">
-                  Subtotal
+                  Estimated total
                 </span>
-                <span className="font-headline-md font-semibold">
+                <span className="font-headline-md text-lg font-semibold text-on-background">
                   {formatPrice(subtotal, currency)}
                 </span>
               </div>
-              <p className="mb-3 text-center font-body-md text-[11px] text-on-surface-variant">
-                Taxes and shipping calculated at checkout. 2 perfumes = 30% off
-                + free shipping.
-              </p>
               <Link
                 href="/checkout"
                 onClick={close}
                 className="gold-glow block w-full rounded bg-secondary py-4 text-center font-label-caps text-label-caps uppercase tracking-[0.14em] text-on-secondary transition-colors hover:bg-secondary-fixed"
               >
-                Checkout
+                checkout
               </Link>
+              <button
+                type="button"
+                onClick={close}
+                className="mt-2 block w-full rounded border border-outline-variant/50 py-3 text-center font-label-caps text-label-caps uppercase tracking-[0.14em] text-on-surface-variant transition-colors hover:border-secondary hover:text-secondary"
+              >
+                Continue Shopping
+              </button>
             </div>
           </>
         )}

@@ -73,6 +73,14 @@ export type OrderAddress = {
   addressLine: string;
   detailedAddress?: string;
   postalCode?: string;
+  /** Customer email, collected for order updates (optional). */
+  email?: string;
+  /** Country/region; the store ships within Egypt by default. */
+  country?: string;
+  /** City or district. */
+  city?: string;
+  /** Apartment, suite, building, floor, or landmark. */
+  apartment?: string;
   notes?: string;
 };
 

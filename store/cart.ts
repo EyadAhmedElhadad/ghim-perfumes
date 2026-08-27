@@ -8,6 +8,8 @@ type CartState = {
   items: CartItem[];
   isOpen: boolean;
   giftNote: GiftNote;
+  /** Optional order note captured from the cart drawer's "Add note" accordion. */
+  cartNote: string;
   add: (item: Omit<CartItem, 'qty'>, qty?: number) => void;
   remove: (id: string) => void;
   setQty: (id: string, qty: number) => void;
@@ -15,6 +17,7 @@ type CartState = {
   open: () => void;
   close: () => void;
   setGiftNote: (note: Partial<GiftNote>) => void;
+  setCartNote: (note: string) => void;
 };
 
 export const useCart = create<CartState>()(
@@ -23,6 +26,7 @@ export const useCart = create<CartState>()(
       items: [],
       isOpen: false,
       giftNote: { enabled: false, message: '' },
+      cartNote: '',
 
       add: (item: Omit<CartItem, 'qty'>, qty = 1) =>
         set((state) => {
@@ -46,13 +50,15 @@ export const useCart = create<CartState>()(
               : state.items.map((i) => (i.id === id ? { ...i, qty } : i)),
         })),
 
-      clear: () => set({ items: [] }),
+      clear: () => set({ items: [], cartNote: '' }),
 
       open: () => set({ isOpen: true }),
       close: () => set({ isOpen: false }),
 
       setGiftNote: (note) =>
         set((state) => ({ giftNote: { ...state.giftNote, ...note } })),
+
+      setCartNote: (note) => set({ cartNote: note }),
     }),
     { name: 'ghim-cart' },
   ),
