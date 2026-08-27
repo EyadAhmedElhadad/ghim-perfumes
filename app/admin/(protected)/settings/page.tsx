@@ -1,6 +1,7 @@
 import { Panel } from '@/components/admin/ui';
 import { isDbConfigured } from '@/lib/db/neon';
 import SiteSettingsForm from '@/components/admin/SiteSettingsForm';
+import AdminPasswordForm from '@/components/admin/AdminPasswordForm';
 
 export const metadata = { title: 'Settings' };
 
@@ -74,6 +75,7 @@ export default function SettingsPage() {
       </Panel>
 
       <SiteSettingsForm />
+      <AdminPasswordForm />
     </div>
   );
 }

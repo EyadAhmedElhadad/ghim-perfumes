@@ -4,22 +4,16 @@ import {
   SESSION_COOKIE,
   sessionCookieOptions,
   SESSION_MAX_AGE,
+  verifyAdminPassword,
 } from '@/lib/db/auth';
 
 export const runtime = 'nodejs';
 
-// Real, password-protected admin login. Sets the non-demo admin session cookie
-// (ghim_admin_session) so the dashboard reflects a genuine admin state instead
-// of "DEMO". Only available when ADMIN_PASSWORD is configured.
+// Real, password-protected admin login. Verifies against the dashboard-set
+// password (stored hashed in Neon / local file) or the ADMIN_PASSWORD env
+// fallback, then sets the non-demo admin session cookie so the dashboard
+// reflects a genuine admin state (LIVE) instead of "DEMO".
 export async function POST(req: Request) {
-  const required = process.env.ADMIN_PASSWORD;
-  if (!required) {
-    return NextResponse.json(
-      { error: 'Admin password is not configured on this environment.' },
-      { status: 401 },
-    );
-  }
-
   let sent: string | undefined;
   try {
     const body = await req.json();
@@ -28,7 +22,8 @@ export async function POST(req: Request) {
     /* no body — treat as missing password */
   }
 
-  if (sent !== required) {
+  const ok = await verifyAdminPassword(sent ?? '');
+  if (!ok) {
     return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
   }
 
