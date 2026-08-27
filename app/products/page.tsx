@@ -26,16 +26,20 @@ export default async function ShopAllPage({ searchParams }: Props) {
   const { cat, search } = await searchParams;
   const all = await getProducts();
 
-  const categoryMap: Record<string, string> = {
-    'luna-aurea': 'her',
-    'cloud-marshmallow': 'her',
-    'desert-rose': 'her',
-    'oud-noir': 'him',
-  };
+  const categoryFilter = cat && cat !== 'all' ? cat : null;
 
-  let products = all.filter((p) =>
-    cat && cat !== 'all' ? categoryMap[p.slug] === cat : true,
-  );
+  // Filter by the product's own category attribute. Unisex products are shown
+  // in both the For Her and For Him collections.
+  let products = all.filter((p) => {
+    if (!categoryFilter) return true;
+    if (p.category === categoryFilter) return true;
+    if (
+      p.category === 'unisex' &&
+      (categoryFilter === 'her' || categoryFilter === 'him')
+    )
+      return true;
+    return false;
+  });
 
   if (search && search.trim()) {
     const q = search.trim().toLowerCase();

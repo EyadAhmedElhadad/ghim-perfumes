@@ -26,6 +26,8 @@ export type Product = {
   stock: number;
   concentration: string;
   size: string;
+  /** Target collection/audience. Drives the For Her / For Him storefront filtering. */
+  category: 'her' | 'him' | 'unisex';
   inspiredBy: string | null;
   inspiredByRetail: number | null;
   notes: PerfumeNoteGroup;

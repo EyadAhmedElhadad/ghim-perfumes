@@ -15,6 +15,7 @@ export const MOCK_PRODUCTS = ([
     id: 'cloud-marshmallow',
     slug: 'cloud-marshmallow',
     name: 'Cloud Marshmallow',
+    category: 'her',
     tagline: 'Smells like the most expensive dessert you\u2019ve ever had.',
     description:
       'A plush, gourmand cloud of whipped marshmallow wrapped in warm cashmere and golden amber. It opens airy and sweet, then melts into a creamy, skin-close hug that lasts all night long. Our take on a true viral favorite \u2014 built for the girls who want dessert to wear, not just to eat.',
@@ -46,6 +47,7 @@ export const MOCK_PRODUCTS = ([
     id: 'luna-aurea',
     slug: 'luna-aurea',
     name: 'Luna Aurea',
+    category: 'her',
     tagline: 'Golden moonlight wrapped in white amber and night jasmine.',
     description:
       'A luminous oriental floral that glows on the skin like a full moon. Creamy white amber, narcotic jasmine and a whisper of vanilla build slowly from the office through dinner, blooming brighter the longer you wear it.',
@@ -77,6 +79,7 @@ export const MOCK_PRODUCTS = ([
     id: 'oud-noir',
     slug: 'oud-noir',
     name: 'Oud Noir',
+    category: 'him',
     tagline: 'Smoky Cambodian oud that stays smooth, never heavy.',
     description:
       'The first oud you can wear without it wearing you. Smoked Cambodian oud meets black pepper and supple leather over a dry amber base \u2014 deep, brooding and impossibly refined.',
@@ -108,6 +111,7 @@ export const MOCK_PRODUCTS = ([
     id: 'desert-rose',
     slug: 'desert-rose',
     name: 'Desert Rose',
+    category: 'unisex',
     tagline: 'Damask rose warmed by oud and cardamom.',
     description:
       'A rose for the desert \u2014 heady Damask rose balanced by earthy oud and a spark of cardamom. Romantic without being soft, floral without being shy.',

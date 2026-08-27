@@ -56,7 +56,7 @@ const seed: AdminProduct[] = MOCK_PRODUCTS.map((p, i) => ({
   stockStatus: stockStatusFor(p.stock),
   concentration: p.concentration,
   size: p.size,
-  category: STORE_CATEGORY_MAP[p.slug] ?? 'unisex',
+  category: p.category ?? STORE_CATEGORY_MAP[p.slug] ?? 'unisex',
   tag: '',
   inspiredBy: p.inspiredBy,
   inspiredByRetail: p.inspiredByRetail,

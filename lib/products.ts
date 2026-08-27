@@ -32,6 +32,7 @@ function adminToProduct(p: AdminProduct): Product {
     stock: Number(p.stock ?? 0),
     concentration: p.concentration || 'Eau de Parfum',
     size: p.size || '',
+    category: p.category ?? 'unisex',
     inspiredBy: p.inspiredBy ?? null,
     inspiredByRetail: p.inspiredByRetail ?? null,
     notes: {
