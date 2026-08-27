@@ -117,9 +117,13 @@ export function AdminShell({
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-outline-variant/40 bg-surface/90 px-6 backdrop-blur">
           <h1 className="font-headline-md text-xl font-semibold">{title}</h1>
           <div className="flex items-center gap-3">
-            {admin.demo && (
+            {admin.demo ? (
               <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-amber-300 uppercase">
                 Demo
+              </span>
+            ) : (
+              <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-emerald-300 uppercase">
+                Live
               </span>
             )}
             <button
