@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import DevModeBanner from '@/components/DevModeBanner';
 import FloatingWhatsApp from '@/components/FloatingWhatsApp';
+import { getSiteSettings } from '@/lib/content';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -16,37 +17,43 @@ const playfair = Playfair_Display({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL('https://ghim-perfumes.vercel.app'),
-  title: {
-    default: 'GHIM.FRAGRANCES | Luxury Middle Eastern Fragrances',
-    template: '%s | GHIM.FRAGRANCES',
-  },
-  description:
-    'Luxury Middle Eastern fragrances composed for the hours between dusk and dawn.',
-  keywords: [
-    'luxury perfume',
-    'Middle Eastern fragrance',
-    'oud perfume',
-    'niche fragrance',
-    'GHIM',
-  ],
-  openGraph: {
-    type: 'website',
-    siteName: 'GHIM.FRAGRANCES',
-    title: 'GHIM.FRAGRANCES | Luxury Middle Eastern Fragrances',
-    description:
-      'Luxury Middle Eastern fragrances composed for the hours between dusk and dawn.',
-    locale: 'en_US',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'GHIM.FRAGRANCES | Luxury Middle Eastern Fragrances',
-    description:
-      'Luxury Middle Eastern fragrances composed for the hours between dusk and dawn.',
-  },
-  robots: { index: true, follow: true },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const s = await getSiteSettings();
+  const brand = s.brandName || 'GHIM.FRAGRANCES';
+  const title = s.seoTitle || 'GHIM.FRAGRANCES | Luxury Middle Eastern Fragrances';
+  const description =
+    s.seoDescription ||
+    'Luxury Middle Eastern fragrances composed for the hours between dusk and dawn.';
+
+  return {
+    metadataBase: new URL('https://ghim-perfumes.vercel.app'),
+    title: {
+      default: title,
+      template: `%s | ${brand}`,
+    },
+    description,
+    keywords: [
+      'luxury perfume',
+      'Middle Eastern fragrance',
+      'oud perfume',
+      'niche fragrance',
+      'GHIM',
+    ],
+    openGraph: {
+      type: 'website',
+      siteName: brand,
+      title,
+      description,
+      locale: 'en_US',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: '#0b0b12',

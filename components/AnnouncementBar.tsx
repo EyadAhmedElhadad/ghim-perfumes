@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { CloseIcon } from './icons';
+import { usePublicContent } from './public-content';
 
 const KEY = 'ghim-announcement-dismissed';
 
 export default function AnnouncementBar() {
   const [dismissed, setDismissed] = useState(false);
+  const { announcementText } = usePublicContent();
 
   useEffect(() => {
     try {
@@ -28,17 +30,19 @@ export default function AnnouncementBar() {
     setDismissed(true);
   };
 
+  const text = announcementText || 'Pick any 2 perfumes. Get 30% off + free shipping';
+
   return (
     <div className="relative z-50 w-full overflow-hidden gold-gradient py-1">
       <div className="marquee-track inline-flex w-max whitespace-nowrap">
         <span className="shrink-0 px-4 font-label-caps text-label-caps tracking-widest uppercase">
-          Pick any 2 perfumes. Get 30% off + free shipping
+          {text}
         </span>
         <span
           className="shrink-0 px-4 font-label-caps text-label-caps tracking-widest uppercase"
           aria-hidden="true"
         >
-          Pick any 2 perfumes. Get 30% off + free shipping
+          {text}
         </span>
       </div>
       <button

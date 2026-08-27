@@ -6,6 +6,7 @@ import ProductImage from '@/components/ProductImage';
 import Image from 'next/image';
 import { BRAND } from '@/lib/mock-data';
 import { getCollectionImages } from '@/lib/homepage-collections';
+import { getHomepageContent } from '@/lib/content';
 import AnnouncementBar from '@/components/AnnouncementBar';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -27,6 +28,19 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const products = await getProducts();
   const collectionImages = await getCollectionImages();
+  const home = await getHomepageContent();
+
+  // Best Sellers: curated ordered list when the admin has configured one,
+  // otherwise fall back to showing all products (current behaviour).
+  const featuredProducts =
+    home.featuredProductIds.length > 0
+      ? home.featuredProductIds
+          .map(
+            (id) =>
+              products.find((p) => p.id === id || p.slug === id) ?? null,
+          )
+          .filter((p): p is (typeof products)[number] => p !== null)
+      : products;
 
   const toCartItem = (p: (typeof products)[number]) => ({
     id: p.id,
@@ -49,7 +63,7 @@ export default async function HomePage() {
         <header className="relative flex min-h-[700px] flex-col items-center justify-center overflow-hidden px-margin-mobile pb-20 pt-12 nocturnal-gradient md:px-margin-desktop">
           <div
             className="absolute inset-0 z-0 opacity-40 mix-blend-screen bg-cover bg-center"
-            style={{ backgroundImage: `url('${BRAND.heroBackground}')` }}
+            style={{ backgroundImage: `url('${home.heroBackgroundUrl || BRAND.heroBackground}')` }}
           />
           <Stardust />
 
@@ -61,12 +75,25 @@ export default async function HomePage() {
                 className="h-44 object-contain opacity-90 drop-shadow-2xl md:h-48"
               />
             <h1 className="font-display-lg text-display-md-mobile leading-tight text-on-background md:text-display-md">
-              Feel the Clouds.
-              <br />
-              <span className="italic gold-text">
-                Live the Essence.
-              </span>
+              {home.heroHeadline || 'Feel the Clouds.'}
+              {home.heroSubheadline ? (
+                <>
+                  <br />
+                  <span className="italic gold-text">
+                    {home.heroSubheadline}
+                  </span>
+                </>
+              ) : null}
             </h1>
+
+            {home.heroCtaText ? (
+              <Link
+                href={home.heroCtaUrl || '/products'}
+                className="gold-glow gold-gradient rounded px-8 py-3 font-label-caps text-label-caps uppercase tracking-widest transition-all hover:opacity-90"
+              >
+                {home.heroCtaText}
+              </Link>
+            ) : null}
 
             <div className="mt-4 flex w-full flex-col justify-center gap-8 px-4 md:flex-row md:gap-gutter">
               <Link
@@ -189,7 +216,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <BestSellersCarousel products={products} />
+        <BestSellersCarousel products={featuredProducts} />
 
         <SocialProof />
       </main>
