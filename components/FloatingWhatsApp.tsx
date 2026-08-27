@@ -6,7 +6,7 @@ import { WhatsappIcon } from './icons';
 import { WHATSAPP_NUMBER } from '@/lib/contact';
 
 const DEFAULT_MESSAGE =
-  'Hello GHIM Perfumes, I have a question about your fragrances.';
+  'Hello GHIM.FRAGRANCES, I have a question about your fragrances.';
 
 export default function FloatingWhatsApp() {
   const pathname = usePathname();

@@ -17,10 +17,10 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://ghim-perfumes.com'),
+  metadataBase: new URL('https://ghim-perfumes.vercel.app'),
   title: {
-    default: 'GHIM Perfumes | Luxury Middle Eastern Fragrances',
-    template: '%s | GHIM Perfumes',
+    default: 'GHIM.FRAGRANCES | Luxury Middle Eastern Fragrances',
+    template: '%s | GHIM.FRAGRANCES',
   },
   description:
     'Luxury Middle Eastern fragrances composed for the hours between dusk and dawn.',
@@ -33,15 +33,15 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     type: 'website',
-    siteName: 'GHIM Perfumes',
-    title: 'GHIM Perfumes | Luxury Middle Eastern Fragrances',
+    siteName: 'GHIM.FRAGRANCES',
+    title: 'GHIM.FRAGRANCES | Luxury Middle Eastern Fragrances',
     description:
       'Luxury Middle Eastern fragrances composed for the hours between dusk and dawn.',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GHIM Perfumes | Luxury Middle Eastern Fragrances',
+    title: 'GHIM.FRAGRANCES | Luxury Middle Eastern Fragrances',
     description:
       'Luxury Middle Eastern fragrances composed for the hours between dusk and dawn.',
   },

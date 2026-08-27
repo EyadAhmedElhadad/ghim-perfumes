@@ -33,7 +33,7 @@ function formatMoney(value: number, currency: string): string {
 
 export function formatOrderMessage(o: WhatsAppOrderInput): string {
   const lines: string[] = [];
-  lines.push('*New order — GHIM Perfumes*');
+  lines.push('*New order — GHIM.FRAGRANCES*');
   lines.push(`Order #: ${o.id}`);
   lines.push(`Name: ${o.customerName}`);
   lines.push(`Phone: ${o.phone}`);

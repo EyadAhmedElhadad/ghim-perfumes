@@ -12,7 +12,16 @@ const EXPLORE = [
 
 const SUPPORT = ['Shipping Policy', 'Refund & Return Policy', 'Contact'];
 
-const SOCIALS = [InstagramIcon, TiktokIcon, WhatsappIcon];
+const SOCIALS = [
+  {
+    Icon: InstagramIcon,
+    href: 'https://www.instagram.com/ghim.fragrances.eg/',
+    label: 'Instagram',
+    external: true,
+  },
+  { Icon: TiktokIcon, href: '#', label: 'TikTok' },
+  { Icon: WhatsappIcon, href: '#', label: 'WhatsApp' },
+];
 
 export default function Footer() {
   return (
@@ -73,11 +82,13 @@ export default function Footer() {
             hello@ghimperfumes.com
           </a>
           <div className="flex items-center gap-4">
-            {SOCIALS.map((Icon, i) => (
+            {SOCIALS.map(({ Icon, href, label, external }) => (
               <a
-                key={i}
-                href="#"
-                aria-label="Social link"
+                key={label}
+                href={href}
+                aria-label={label}
+                target={external ? '_blank' : undefined}
+                rel={external ? 'noopener noreferrer' : undefined}
                 className="text-on-surface-variant transition-colors hover:text-secondary"
               >
                 <Icon className="h-5 w-5" />
@@ -90,7 +101,7 @@ export default function Footer() {
 
       <div className="col-span-1 flex flex-col items-center justify-between gap-4 border-t border-outline-variant/10 px-margin-mobile py-8 md:flex-row md:px-margin-desktop">
         <p className="font-body-md text-sm text-on-surface-variant">
-          © {new Date().getFullYear()} GHIM Perfumes. All rights reserved.
+          © {new Date().getFullYear()} GHIM.FRAGRANCES. All rights reserved.
         </p>
         <div className="flex items-center gap-2 text-secondary/30">
           <div className="h-[1px] w-12 bg-current" />

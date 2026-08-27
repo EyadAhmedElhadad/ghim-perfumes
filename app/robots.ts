@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: '/admin/',
     },
-    sitemap: 'https://ghim-perfumes.com/sitemap.xml',
+    sitemap: 'https://ghim-perfumes.vercel.app/sitemap.xml',
   };
 }
