@@ -4,8 +4,13 @@
 // (digits only, with or without country code, e.g. 201000000000). It is read
 // at build time so the checkout flow can hand orders off to WhatsApp.
 
-export const WHATSAPP_NUMBER = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '')
+// Store WhatsApp number (international format, Egypt = 20 + national number).
+// Read from NEXT_PUBLIC_WHATSAPP_NUMBER when set; fall back to the store's
+// number so the handoff works even if the env var isn't loaded at build time.
+const CONFIGURED_WHATSAPP = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '')
   .replace(/[^\d]/g, '');
+
+export const WHATSAPP_NUMBER = CONFIGURED_WHATSAPP || '201004692513';
 
 export type WhatsAppOrderInput = {
   id: string;
