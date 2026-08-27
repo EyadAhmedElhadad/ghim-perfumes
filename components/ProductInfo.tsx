@@ -96,16 +96,16 @@ export default function ProductInfo({ product }: Props) {
 
       <div className="flex items-center gap-3">
         <span
-          className={`font-display-lg font-semibold ${onSale ? 'text-error' : 'text-on-background'}`}
+          className={`font-body-md font-normal ${onSale ? 'text-error' : 'text-on-background'}`}
         >
           {formatPrice(product.price, product.currency)}
         </span>
         {onSale && product.compareAtPrice && (
           <>
-            <span className="font-display-lg text-lg text-on-surface-variant line-through">
+              <span className="font-body-md text-lg text-on-surface-variant line-through">
               {formatPrice(product.compareAtPrice, product.currency)}
             </span>
-              <span className="rounded-full bg-error-container px-2.5 py-1 font-display-lg text-xs font-semibold text-on-error-container">
+              <span className="rounded-full bg-error-container px-2.5 py-1 font-body-md text-xs font-normal text-on-error-container">
               SAVE {discountPct}%
             </span>
           </>
