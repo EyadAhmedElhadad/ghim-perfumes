@@ -53,7 +53,7 @@ export default function CartDrawer() {
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
             <p className="font-headline-lg">Your bag is empty.</p>
             <p className="font-body-md text-sm text-on-surface-variant">
-              Add a fragrance to get 15% off + free shipping.
+              Add a fragrance to get 30% off + free shipping.
             </p>
             <button
               onClick={close}
@@ -153,7 +153,7 @@ export default function CartDrawer() {
                 </span>
               </div>
               <p className="mb-3 text-center font-body-md text-[11px] text-on-surface-variant">
-                Taxes and shipping calculated at checkout. 2 perfumes = 15% off
+                Taxes and shipping calculated at checkout. 2 perfumes = 30% off
                 + free shipping.
               </p>
               <Link

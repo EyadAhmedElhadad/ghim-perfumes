@@ -32,13 +32,13 @@ export default function AnnouncementBar() {
     <div className="relative z-50 w-full overflow-hidden gold-gradient py-1">
       <div className="marquee-track inline-flex w-max whitespace-nowrap">
         <span className="shrink-0 px-4 font-label-caps text-label-caps tracking-widest uppercase">
-          2 Perfumes = 15% Off + Free Shipping
+          Pick any 2 perfumes. Get 30% off + free shipping
         </span>
         <span
           className="shrink-0 px-4 font-label-caps text-label-caps tracking-widest uppercase"
           aria-hidden="true"
         >
-          2 Perfumes = 15% Off + Free Shipping
+          Pick any 2 perfumes. Get 30% off + free shipping
         </span>
       </div>
       <button

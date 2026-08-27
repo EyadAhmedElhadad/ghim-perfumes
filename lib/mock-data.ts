@@ -4,7 +4,7 @@ const img = (seed: string, w = 900, h = 1120) =>
   `https://picsum.photos/seed/${seed}/${w}/${h}`;
 
 export const SHIPPING_POLICY: ShippingPolicy = {
-  bundleOffer: 'Buy 2 perfumes and get 15% off your order + FREE shipping, all day, every day.',
+  bundleOffer: 'Buy 2 perfumes and get 30% off your order + FREE shipping, all day, every day.',
   deliveryTime: 'Orders are dispatched within 24 hours and delivered in 2–5 business days across Egypt.',
   paymentOptions: ['Cash on Delivery', 'Visa', 'Mastercard', 'Apple Pay', 'Amex', 'InstaPay'],
   damageGuarantee: 'If your bottle arrives damaged or broken, snap a photo within 48 hours and we will ship a replacement free of charge.',

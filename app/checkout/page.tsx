@@ -336,7 +336,7 @@ export default function CheckoutPage() {
                 {busy ? 'Placing order…' : 'Place order'}
               </button>
               <p className="text-center text-xs text-on-surface-variant">
-                Taxes and shipping calculated at checkout. 2 perfumes = 15% off + free
+                Taxes and shipping calculated at checkout. 2 perfumes = 30% off + free
                 shipping.
               </p>
             </div>
