@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import DevModeBanner from '@/components/DevModeBanner';
 import FloatingWhatsApp from '@/components/FloatingWhatsApp';
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 import { getSiteSettings } from '@/lib/content';
 
 const inter = Inter({
@@ -52,11 +53,19 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
     },
     robots: { index: true, follow: true },
+    icons: {
+      apple: '/icon-512.png',
+    },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'black-translucent',
+      title: 'GHIM',
+    },
   };
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0b0b12',
+  themeColor: '#0a0e17',
   width: 'device-width',
   initialScale: 1,
 };
@@ -70,6 +79,7 @@ export default function RootLayout({
         <DevModeBanner />
         {children}
         <FloatingWhatsApp />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
