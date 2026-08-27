@@ -83,7 +83,6 @@ export default function BestSellersCarousel({ products }: { products: Product[] 
   const [page, setPage] = useState(0);
 
   const trackRef = useRef<HTMLDivElement>(null);
-  const drag = useRef({ active: false, startX: 0, startScroll: 0, moved: false });
 
   // Keep the page counter / arrows in sync with scroll position (drag, swipe, or arrows).
   useEffect(() => {
@@ -108,57 +107,61 @@ export default function BestSellersCarousel({ products }: { products: Product[] 
     };
   }, [totalPages]);
 
+  // Drag-to-scroll (mouse). Touch uses native scrolling.
+  // A click/tap that moves less than the threshold still navigates normally;
+  // only a real drag (past the threshold) suppresses the click.
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    let isDown = false;
+    let startX = 0;
+    let startScroll = 0;
+    let moved = false;
+
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
+      isDown = true;
+      moved = false;
+      startX = e.clientX;
+      startScroll = el.scrollLeft;
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!isDown) return;
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 8) moved = true;
+      el.scrollLeft = startScroll - dx;
+    };
+    const onUp = () => {
+      isDown = false;
+    };
+    const onClickCapture = (e: MouseEvent) => {
+      if (moved) {
+        e.preventDefault();
+        e.stopPropagation();
+        moved = false;
+      }
+    };
+
+    el.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    el.addEventListener('click', onClickCapture, true);
+    return () => {
+      el.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      el.removeEventListener('click', onClickCapture, true);
+    };
+  }, []);
+
   if (products.length === 0) return null;
 
   const go = (dir: -1 | 1) => {
     const el = trackRef.current;
     if (!el) return;
     const pageWidth = el.clientWidth;
-    const target = Math.min(
-      Math.max(page + dir, 0),
-      totalPages - 1,
-    );
+    const target = Math.min(Math.max(page + dir, 0), totalPages - 1);
     el.scrollTo({ left: target * pageWidth, behavior: 'smooth' });
-  };
-
-  // Mouse drag-to-scroll (touch uses native scrolling).
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType !== 'mouse') return;
-    const el = trackRef.current;
-    if (!el) return;
-    drag.current.active = true;
-    drag.current.startX = e.clientX;
-    drag.current.startScroll = el.scrollLeft;
-    drag.current.moved = false;
-    el.setPointerCapture(e.pointerId);
-  };
-
-  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!drag.current.active) return;
-    const el = trackRef.current;
-    if (!el) return;
-    const dx = e.clientX - drag.current.startX;
-    if (Math.abs(dx) > 5) drag.current.moved = true;
-    el.scrollLeft = drag.current.startScroll - dx;
-  };
-
-  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!drag.current.active) return;
-    drag.current.active = false;
-    try {
-      trackRef.current?.releasePointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-  };
-
-  // Suppress the click that follows a drag so we don't navigate away.
-  const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (drag.current.moved) {
-      e.preventDefault();
-      e.stopPropagation();
-      drag.current.moved = false;
-    }
   };
 
   const cardStyle: React.CSSProperties = {
@@ -199,12 +202,6 @@ export default function BestSellersCarousel({ products }: { products: Product[] 
 
       <div
         ref={trackRef}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerLeave={endDrag}
-        onPointerCancel={endDrag}
-        onClickCapture={onClickCapture}
         className="flex snap-x snap-mandatory select-none items-start gap-gutter cursor-grab overflow-x-auto pb-2 active:cursor-grabbing [&_img]:[-webkit-user-drag:none] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
       >
