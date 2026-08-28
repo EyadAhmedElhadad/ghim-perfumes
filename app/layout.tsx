@@ -27,7 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
     'Luxury Middle Eastern fragrances composed for the hours between dusk and dawn.';
 
   return {
-    metadataBase: new URL('https://ghim-perfumes.vercel.app'),
+    metadataBase: new URL('https://ghim-fragrances.vercel.app'),
     title: {
       default: title,
       template: `%s | ${brand}`,

@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { getProducts } from '@/lib/products';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = 'https://ghim-perfumes.vercel.app';
+  const base = 'https://ghim-fragrances.vercel.app';
   const products = await getProducts();
   const productUrls = products.map((p) => ({
     url: `${base}/products/${p.slug}`,

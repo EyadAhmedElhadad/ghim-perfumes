@@ -9,7 +9,6 @@ import ProductGallery from '@/components/ProductGallery';
 import ProductInfo from '@/components/ProductInfo';
 import ProductAccordions from '@/components/ProductAccordions';
 import PerfumeNotes from '@/components/PerfumeNotes';
-import SocialProof from '@/components/SocialProof';
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -51,7 +50,6 @@ export default async function ProductPage({ params }: Params) {
           <ProductAccordions product={product} />
         </div>
         <PerfumeNotes product={product} />
-        <SocialProof />
       </main>
       <Footer />
       <CartDrawer />
