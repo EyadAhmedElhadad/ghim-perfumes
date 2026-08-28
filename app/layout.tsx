@@ -54,7 +54,11 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     robots: { index: true, follow: true },
     icons: {
-      apple: '/icon-512.png',
+      icon: [
+        { url: '/icon.svg', type: 'image/svg+xml' },
+        { url: '/icon.png', type: 'image/png' },
+      ],
+      apple: [{ url: '/apple-icon.png' }],
     },
     appleWebApp: {
       capable: true,
