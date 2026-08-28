@@ -13,6 +13,7 @@ const NAV = [
   { href: '/admin/homepage', label: 'Homepage' },
   { href: '/admin/pages', label: 'Pages' },
   { href: '/admin/orders', label: 'Orders' },
+  { href: '/admin/reviews', label: 'Reviews' },
   { href: '/admin/settings', label: 'Settings' },
 ];
 
@@ -24,6 +25,7 @@ const TITLES: Array<[RegExp, string]> = [
   [/^\/admin\/homepage/, 'Homepage'],
   [/^\/admin\/pages/, 'Pages'],
   [/^\/admin\/orders/, 'Orders'],
+  [/^\/admin\/reviews/, 'Reviews'],
   [/^\/admin\/settings/, 'Settings'],
   [/^\/admin$/, 'Dashboard'],
 ];

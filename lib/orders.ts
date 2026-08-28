@@ -16,6 +16,7 @@ type DbOrderRow = {
   status: string;
   payment_method: string;
   created_at: string;
+  review_token: string | null;
 };
 
 export type NewOrderInput = {
@@ -61,6 +62,10 @@ function assertValid(input: NewOrderInput): void {
 export async function ensureOrdersTable(): Promise<void> {
   const pool = getPool();
   await pool.query(ORDERS_TABLE_SQL);
+  // Added for the token-based customer review flow.
+  await pool.query(
+    `ALTER TABLE orders ADD COLUMN IF NOT EXISTS review_token TEXT`,
+  );
 }
 
 export async function createOrder(input: NewOrderInput): Promise<Order> {
@@ -84,6 +89,7 @@ export async function createOrder(input: NewOrderInput): Promise<Order> {
     status: 'pending',
     paymentMethod: input.paymentMethod,
     createdAt: new Date().toISOString(),
+    reviewToken: '',
   };
 
   const pool = getPool();
@@ -119,18 +125,62 @@ export async function updateOrderStatus(
     `UPDATE orders
      SET status = $2
      WHERE id = $1
-     RETURNING id, items, address, governorate, subtotal, shipping, total, currency, status, payment_method, created_at`,
+     RETURNING id, items, address, governorate, subtotal, shipping, total, currency, status, payment_method, created_at, review_token`,
     [id, status],
   );
   if (res.rows.length === 0) return null;
-  return rowToOrder(res.rows[0]);
+  const order = rowToOrder(res.rows[0]);
+  // Ensure a stable review token exists once an order is touched by the admin.
+  order.reviewToken = await ensureReviewToken(id);
+  return order;
+}
+
+/**
+ * Returns the order's existing review token, generating one if absent.
+ * Idempotent: concurrent calls still yield a single stable token.
+ */
+export async function ensureReviewToken(orderId: string): Promise<string> {
+  const pool = getPool();
+  await ensureOrdersTable();
+  const updated = await pool.query<{ review_token: string | null }>(
+    `UPDATE orders
+     SET review_token = COALESCE(review_token, $2)
+     WHERE id = $1 AND review_token IS NULL
+     RETURNING review_token`,
+    [orderId, randomUUID()],
+  );
+  if (updated.rows.length > 0 && updated.rows[0].review_token) {
+    return updated.rows[0].review_token;
+  }
+  const existing = await pool.query<{ review_token: string | null }>(
+    `SELECT review_token FROM orders WHERE id = $1`,
+    [orderId],
+  );
+  return existing.rows[0]?.review_token ?? '';
+}
+
+/** Resolves a review token to its order (id + customer name) or null. */
+export async function getOrderReviewContext(
+  token: string,
+): Promise<{ orderId: string; customerName: string } | null> {
+  const pool = getPool();
+  await ensureOrdersTable();
+  const res = await pool.query<{ id: string; full_name: string | null }>(
+    `SELECT id, address->>'fullName' AS full_name FROM orders WHERE review_token = $1`,
+    [token],
+  );
+  if (res.rows.length === 0) return null;
+  return {
+    orderId: res.rows[0].id,
+    customerName: res.rows[0].full_name ?? '',
+  };
 }
 
 export async function listOrders(limit = 100): Promise<Order[]> {
   const pool = getPool();
   await ensureOrdersTable();
   const res = await pool.query<DbOrderRow>(
-    `SELECT id, items, address, governorate, subtotal, shipping, total, currency, status, payment_method, created_at
+    `SELECT id, items, address, governorate, subtotal, shipping, total, currency, status, payment_method, created_at, review_token
      FROM orders
      ORDER BY created_at DESC
      LIMIT $1`,
@@ -169,5 +219,6 @@ function rowToOrder(row: DbOrderRow): Order {
     status: (row.status as OrderStatus) ?? 'pending',
     paymentMethod: row.payment_method,
     createdAt: row.created_at,
+    reviewToken: row.review_token ?? '',
   };
 }

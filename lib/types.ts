@@ -108,6 +108,8 @@ export type Order = {
   paymentMethod: string;
   /** ISO timestamp string as stored in the database. */
   createdAt: string;
+  /** Unique token used to build the customer review link (/rate/[token]). */
+  reviewToken: string;
 };
 
 export type AdminProduct = {

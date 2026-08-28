@@ -21,6 +21,16 @@ export default function OrdersPage() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
+  async function copyReviewLink(token: string) {
+    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/rate/${token}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast('Review link copied to clipboard', 'success');
+    } catch {
+      toast(url, 'success');
+    }
+  }
+
   useEffect(() => {
     let active = true;
     (async () => {
@@ -242,6 +252,15 @@ export default function OrdersPage() {
                         </button>
                       ))}
                     </div>
+                    {o.status !== 'pending' && o.reviewToken ? (
+                      <button
+                        type="button"
+                        onClick={() => void copyReviewLink(o.reviewToken)}
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-xs font-medium text-secondary transition-colors hover:bg-secondary/20"
+                      >
+                        🔗 Copy review link
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               </li>
