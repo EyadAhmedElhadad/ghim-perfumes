@@ -12,7 +12,6 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
 import Stardust from '@/components/Stardust';
-import SocialProof from '@/components/SocialProof';
 import AddToCartMini from '@/components/AddToCartMini';
 import BestSellersCarousel from '@/components/BestSellersCarousel';
 
@@ -217,8 +216,6 @@ export default async function HomePage() {
         </section>
 
         <BestSellersCarousel products={featuredProducts} />
-
-        <SocialProof />
       </main>
 
       <Footer />
