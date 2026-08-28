@@ -10,7 +10,6 @@ const EXPLORE = [
   { label: 'For Her', href: '/products?cat=her' },
   { label: 'For Him', href: '/products?cat=him' },
   { label: 'About Us', href: '/p/about' },
-  { label: 'Admin Dashboard', href: '/admin' },
 ];
 
 const SUPPORT = [

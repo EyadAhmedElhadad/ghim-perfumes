@@ -11,13 +11,14 @@ import {
   SearchIcon,
   UserIcon,
 } from './icons';
+import { usePublicContent } from './public-content';
 
 const NAV = [
   { label: 'Home', href: '/' },
   { label: 'Shop All', href: '/products' },
   { label: 'For Her', href: '/products?cat=her' },
   { label: 'For Him', href: '/products?cat=him' },
-  { label: 'About', href: '#why' },
+  { label: 'About', href: '/p/about' },
 ];
 
 // Shared, accessible link styling. Underline slides in on hover/focus/active
@@ -45,6 +46,8 @@ function Header() {
   const [scrolled, setScrolled] = useState(false);
 
   const router = useRouter();
+  const { siteSettings: s } = usePublicContent();
+  const brandName = s.brandName.replace(/\.FRAGRANCES$/i, '') || 'GHIM';
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -133,15 +136,15 @@ function Header() {
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-margin-mobile transition-all duration-300 md:px-margin-desktop">
         {/* Left zone — brand */}
         <div className="flex shrink-0 items-center">
-          <Link
-            href="/"
-            aria-label="Ghim — home"
-            className={`font-display-lg italic tracking-wide gold-text transition-all duration-300 ${
-              scrolled ? 'text-2xl' : 'text-3xl'
-            }`}
-          >
-            Ghim
-          </Link>
+           <Link
+             href="/"
+             aria-label={`${brandName} — home`}
+             className={`font-display-lg italic tracking-wide gold-text transition-all duration-300 ${
+               scrolled ? 'text-2xl' : 'text-3xl'
+             }`}
+           >
+             {brandName}
+           </Link>
         </div>
 
         {/* Center zone — primary navigation (tablet + desktop) */}
@@ -271,7 +274,7 @@ function Header() {
           }`}
         >
           <div className="flex items-center justify-between border-b border-outline-variant/20 px-6 py-5">
-            <span className="font-display-lg text-2xl italic gold-text">Ghim</span>
+            <span className="font-display-lg text-2xl italic gold-text">{brandName}</span>
             <button
               type="button"
               onClick={() => setMenuOpen(false)}
