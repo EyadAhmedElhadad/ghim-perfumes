@@ -174,6 +174,16 @@ export async function getReviewByOrder(
   return rowToReview(res.rows[0]);
 }
 
+export async function deleteOrderReview(id: string): Promise<boolean> {
+  const pool = getPool();
+  await ensureOrderReviewsTable();
+  const res = await pool.query(
+    `DELETE FROM order_reviews WHERE id = $1`,
+    [id],
+  );
+  return (res.rowCount ?? 0) > 0;
+}
+
 export async function getOrderReviewStats(): Promise<OrderReviewStats> {
   const reviews = await listOrderReviews();
   const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };

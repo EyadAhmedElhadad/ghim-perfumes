@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Panel } from '@/components/admin/ui';
+import { Panel, useToast } from '@/components/admin/ui';
+import { TrashIcon } from '@/components/icons';
 
 type Review = {
   id: string;
@@ -43,6 +44,9 @@ export default function ReviewsPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<number | 'all'>('all');
   const [loading, setLoading] = useState(true);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     (async () => {
@@ -58,6 +62,49 @@ export default function ReviewsPage() {
       }
     })();
   }, []);
+
+  async function deleteReview(id: string) {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/admin/reviews/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'Failed to delete review');
+      }
+      toast('Review deleted', 'success');
+      setStats((curr) =>
+        curr
+          ? {
+              ...curr,
+              reviews: curr.reviews.filter((r) => r.id !== id),
+              total: Math.max(0, curr.total - 1),
+              average:
+                curr.reviews.length > 1
+                  ? Math.round(
+                      ((curr.average * curr.reviews.length -
+                        (curr.reviews.find((r) => r.id === id)?.rating ?? 0)) /
+                        (curr.reviews.length - 1)) *
+                        10,
+                    ) / 10
+                  : 0,
+              counts: (() => {
+                const r = curr.reviews.find((x) => x.id === id);
+                const counts = { ...curr.counts };
+                if (r && counts[r.rating] !== undefined) {
+                  counts[r.rating] = Math.max(0, counts[r.rating] - 1);
+                }
+                return counts;
+              })(),
+            }
+          : curr,
+      );
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to delete review', 'error');
+    } finally {
+      setDeletingId(null);
+      setConfirmingId(null);
+    }
+  }
 
   const visible = useMemo(() => {
     if (!stats) return [];
@@ -134,11 +181,43 @@ export default function ReviewsPage() {
                       </span>
                       <Stars rating={r.rating} />
                     </div>
-                    <span className="text-xs text-on-surface-variant">
-                      {new Date(r.createdAt).toLocaleDateString('en-US', {
-                        dateStyle: 'medium',
-                      })}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {confirmingId === r.id ? (
+                        <>
+                          <button
+                            type="button"
+                            disabled={deletingId === r.id}
+                            onClick={() => void deleteReview(r.id)}
+                            className="rounded-full border border-error/50 bg-error-container/30 px-2.5 py-1 text-xs font-medium text-error transition-colors hover:bg-error-container/50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {deletingId === r.id ? 'Deleting…' : 'Confirm'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deletingId === r.id}
+                            onClick={() => setConfirmingId(null)}
+                            className="rounded-full border border-outline-variant/40 bg-surface-container-high px-2.5 py-1 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          aria-label="Delete review"
+                          disabled={deletingId === r.id}
+                          onClick={() => setConfirmingId(r.id)}
+                          className="rounded-full border border-outline-variant/40 bg-surface-container-high p-1.5 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-error disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      )}
+                      <span className="text-xs text-on-surface-variant">
+                        {new Date(r.createdAt).toLocaleDateString('en-US', {
+                          dateStyle: 'medium',
+                        })}
+                      </span>
+                    </div>
                   </div>
                   <p className="mt-1 text-xs text-on-surface-variant">
                     Order{' '}
