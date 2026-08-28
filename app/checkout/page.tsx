@@ -9,6 +9,7 @@ import type { OrderItem } from '@/lib/types';
 import { whatsappLink, formatOrderMessage, WHATSAPP_NUMBER } from '@/lib/contact';
 import CartDrawer from '@/components/CartDrawer';
 import ProductImage from '@/components/ProductImage';
+import RateExperienceModal from '@/components/feedback/RateExperienceModal';
 import { usePublicContent } from '@/components/public-content';
 import { ApplePayIcon, BagIcon, InfoIcon, LockIcon, MastercardIcon, TruckIcon, VisaIcon } from '@/components/icons';
 
@@ -164,6 +165,7 @@ export default function CheckoutPage() {
           </Link>
         </main>
         <CartDrawer />
+        <RateExperienceModal orderId={placed.id} />
       </div>
     );
   }
