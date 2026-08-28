@@ -150,6 +150,13 @@ export async function getOrder(id: string): Promise<Order | null> {
   return rowToOrder(res.rows[0]);
 }
 
+export async function deleteOrder(id: string): Promise<boolean> {
+  const pool = getPool();
+  await ensureOrdersTable();
+  const res = await pool.query('DELETE FROM orders WHERE id = $1', [id]);
+  return (res.rowCount ?? 0) > 0;
+}
+
 function rowToOrder(row: DbOrderRow): Order {
   return {
     id: row.id,

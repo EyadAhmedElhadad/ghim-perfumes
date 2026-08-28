@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
-import { Panel } from '@/components/admin/ui';
+import { Panel, useToast } from '@/components/admin/ui';
+import { TrashIcon } from '@/components/icons';
 import { formatPrice } from '@/lib/format';
 import type { Order } from '@/lib/types';
 
@@ -15,7 +16,10 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   useEffect(() => {
     let active = true;
@@ -57,6 +61,26 @@ export default function OrdersPage() {
       setError(err instanceof Error ? err.message : 'Failed to update order');
     } finally {
       setUpdatingId(null);
+    }
+  }
+
+  async function deleteOrder(id: string) {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/admin/orders/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'Failed to delete order');
+      }
+      toast('Order deleted', 'success');
+      startTransition(() => {
+        setOrders((curr) => curr?.filter((o) => o.id !== id) ?? curr);
+      });
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to delete order', 'error');
+    } finally {
+      setDeletingId(null);
+      setConfirmingId(null);
     }
   }
 
@@ -114,6 +138,35 @@ export default function OrdersPage() {
                     <span className="font-headline-md font-semibold text-secondary">
                       {formatPrice(o.total, o.currency)}
                     </span>
+                    {confirmingId === o.id ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={deletingId === o.id}
+                          onClick={() => void deleteOrder(o.id)}
+                          className="rounded-full border border-error/50 bg-error-container/30 px-2.5 py-1 text-xs font-medium text-error transition-colors hover:bg-error-container/50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {deletingId === o.id ? 'Deleting…' : 'Confirm'}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deletingId === o.id}
+                          onClick={() => setConfirmingId(null)}
+                          className="rounded-full border border-outline-variant/40 bg-surface-container-high px-2.5 py-1 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        aria-label="Delete order"
+                        onClick={() => setConfirmingId(o.id)}
+                        className="rounded-full border border-outline-variant/40 bg-surface-container-high p-1.5 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-error disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
