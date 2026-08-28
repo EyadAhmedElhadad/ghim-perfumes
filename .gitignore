@@ -33,3 +33,6 @@ firebase-debug.log
 
 # typescript build info
 *.tsbuildinfo
+
+# local dev run artifacts
+devrun.err
