@@ -2,9 +2,25 @@
 
 import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Panel, Field, Input, Textarea, Button, Spinner, useToast } from '@/components/admin/ui';
+import {
+  Panel,
+  Field,
+  Input,
+  Textarea,
+  Button,
+  Spinner,
+  useToast,
+} from '@/components/admin/ui';
+import { uploadProductImage } from '@/lib/upload';
 
-type PageContent = { slug: string; title: string; body: string; updatedAt: number };
+type PageContent = {
+  slug: string;
+  title: string;
+  subtitle: string;
+  imageUrl: string;
+  body: string;
+  updatedAt: number;
+};
 
 export default function PageEditor() {
   const { toast } = useToast();
@@ -15,6 +31,8 @@ export default function PageEditor() {
   const [page, setPage] = React.useState<PageContent | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+  const [uploading, setUploading] = React.useState(false);
+  const fileRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     (async () => {
@@ -38,7 +56,12 @@ export default function PageEditor() {
       const res = await fetch(`/api/admin/pages/${slug}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: page.title, body: page.body }),
+        body: JSON.stringify({
+          title: page.title,
+          subtitle: page.subtitle,
+          imageUrl: page.imageUrl,
+          body: page.body,
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.page) throw new Error(data.error || 'Failed to save');
@@ -48,6 +71,25 @@ export default function PageEditor() {
       toast(e instanceof Error ? e.message : 'Failed to save', 'error');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const media = await uploadProductImage(file, 'about');
+      setPage((p) => (p ? { ...p, imageUrl: media.url } : p));
+      toast('Image uploaded — save to apply', 'success');
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : 'Upload failed',
+        'error',
+      );
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
     }
   }
 
@@ -81,6 +123,66 @@ export default function PageEditor() {
             onChange={(e) => setPage({ ...page, title: e.target.value })}
           />
         </Field>
+
+        <Field
+          label="Subtitle / tagline"
+          hint="Optional luxury accent heading shown above the title."
+        >
+          <Input
+            value={page.subtitle}
+            placeholder="e.g. Our Story"
+            onChange={(e) => setPage({ ...page, subtitle: e.target.value })}
+          />
+        </Field>
+
+        <Field
+          label="Brand Story Image URL"
+          hint="Paste an image URL, or upload one below. Shows on the left of the 2-column layout."
+        >
+          <Input
+            value={page.imageUrl}
+            placeholder="https://…"
+            onChange={(e) => setPage({ ...page, imageUrl: e.target.value })}
+          />
+        </Field>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleUpload}
+          />
+          <Button
+            variant="secondary"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? <Spinner /> : null}
+            {uploading ? 'Uploading…' : 'Upload image'}
+          </Button>
+          {page.imageUrl ? (
+            <Button
+              variant="ghost"
+              onClick={() => setPage({ ...page, imageUrl: '' })}
+            >
+              Remove image
+            </Button>
+          ) : null}
+        </div>
+
+        {page.imageUrl ? (
+          <div className="overflow-hidden rounded-xl border border-outline-variant/40">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={page.imageUrl}
+              alt="Brand story preview"
+              className="h-48 w-full object-cover"
+            />
+          </div>
+        ) : null}
+
         <Field label="Body copy" hint="Plain text. Use blank lines between paragraphs.">
           <Textarea
             value={page.body}

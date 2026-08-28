@@ -40,11 +40,26 @@ export async function PUT(
   }
 
   const obj = (body ?? {}) as Record<string, unknown>;
-  const patch: { title?: string; body?: string } = {};
+  const patch: {
+    title?: string;
+    subtitle?: string;
+    imageUrl?: string;
+    body?: string;
+  } = {};
   if (obj.title !== undefined) {
     if (typeof obj.title !== 'string')
       return NextResponse.json({ error: 'title must be a string' }, { status: 400 });
     patch.title = obj.title;
+  }
+  if (obj.subtitle !== undefined) {
+    if (typeof obj.subtitle !== 'string')
+      return NextResponse.json({ error: 'subtitle must be a string' }, { status: 400 });
+    patch.subtitle = obj.subtitle;
+  }
+  if (obj.imageUrl !== undefined) {
+    if (typeof obj.imageUrl !== 'string')
+      return NextResponse.json({ error: 'imageUrl must be a string' }, { status: 400 });
+    patch.imageUrl = obj.imageUrl;
   }
   if (obj.body !== undefined) {
     if (typeof obj.body !== 'string')

@@ -371,13 +371,19 @@ export async function updateHomepageContent(
 export type PageContent = {
   slug: string;
   title: string;
+  subtitle: string;
+  imageUrl: string;
   body: string;
   updatedAt: number;
 };
 
-export const DEFAULT_PAGES: Record<string, { title: string; body: string }> = {
+export const DEFAULT_PAGES: Record<
+  string,
+  { title: string; body: string; subtitle?: string; imageUrl?: string }
+> = {
   about: {
     title: 'About Us',
+    subtitle: 'Our Story',
     body:
       'GHIM is a high-end Middle Eastern fragrance house crafting scents for the hours between dusk and dawn.\n\nOur compositions blend rare oud, luminous florals and gourmand accords into luxurious, long-lasting perfumes — composed with care, presented like a gift.',
   },
@@ -402,7 +408,16 @@ export const PAGE_SLUGS = Object.keys(DEFAULT_PAGES);
 
 const PAGE_DEMO_FILE = path.join(DEMO_DIR, 'page-content.json');
 
-type PageFile = Record<string, { title: string; body: string; updatedAt: number }>;
+type PageFile = Record<
+  string,
+  {
+    title: string;
+    body: string;
+    subtitle?: string;
+    imageUrl?: string;
+    updatedAt: number;
+  }
+>;
 
 function loadPagesFile(): PageFile {
   try {
@@ -433,12 +448,22 @@ async function ensurePagesTable(): Promise<void> {
       updated_at BIGINT NOT NULL DEFAULT 0
     );
   `;
+  // Added later for the 2-column About layout (image + accent subtitle).
+  await sql`ALTER TABLE page_content ADD COLUMN IF NOT EXISTS subtitle TEXT NOT NULL DEFAULT ''`;
+  await sql`ALTER TABLE page_content ADD COLUMN IF NOT EXISTS image_url TEXT NOT NULL DEFAULT ''`;
 }
 
 function defaultPage(slug: string): PageContent | null {
   const d = DEFAULT_PAGES[slug];
   if (!d) return null;
-  return { slug, title: d.title, body: d.body, updatedAt: 0 };
+  return {
+    slug,
+    title: d.title,
+    subtitle: d.subtitle ?? '',
+    imageUrl: d.imageUrl ?? '',
+    body: d.body,
+    updatedAt: 0,
+  };
 }
 
 export async function getPageContent(slug: string): Promise<PageContent | null> {
@@ -454,6 +479,8 @@ export async function getPageContent(slug: string): Promise<PageContent | null> 
         return {
           slug,
           title: String(row.title || d.title),
+          subtitle: String(row.subtitle ?? d.subtitle ?? ''),
+          imageUrl: String(row.image_url ?? d.imageUrl ?? ''),
           body: String(row.body || d.body),
           updatedAt: Number(row.updated_at ?? 0),
         };
@@ -470,6 +497,8 @@ export async function getPageContent(slug: string): Promise<PageContent | null> 
     return {
       slug,
       title: row.title || d.title,
+      subtitle: row.subtitle ?? d.subtitle ?? '',
+      imageUrl: row.imageUrl ?? d.imageUrl ?? '',
       body: row.body || d.body,
       updatedAt: Number(row.updatedAt ?? 0),
     };
@@ -484,13 +513,15 @@ export async function listPages(): Promise<PageContent[]> {
 
 export async function updatePageContent(
   slug: string,
-  patch: { title?: string; body?: string },
+  patch: { title?: string; subtitle?: string; imageUrl?: string; body?: string },
 ): Promise<PageContent | null> {
   if (!DEFAULT_PAGES[slug]) return null;
   const current = (await getPageContent(slug)) ?? defaultPage(slug)!;
   const next: PageContent = {
     ...current,
     title: patch.title !== undefined ? patch.title : current.title,
+    subtitle: patch.subtitle !== undefined ? patch.subtitle : current.subtitle,
+    imageUrl: patch.imageUrl !== undefined ? patch.imageUrl : current.imageUrl,
     body: patch.body !== undefined ? patch.body : current.body,
     updatedAt: Date.now(),
   };
@@ -499,10 +530,12 @@ export async function updatePageContent(
       const sql = getNeon();
       await ensurePagesTable();
       await sql`
-        INSERT INTO page_content (slug, title, body, updated_at)
-        VALUES (${slug}, ${next.title}, ${next.body}, ${next.updatedAt})
+        INSERT INTO page_content (slug, title, subtitle, image_url, body, updated_at)
+        VALUES (${slug}, ${next.title}, ${next.subtitle}, ${next.imageUrl}, ${next.body}, ${next.updatedAt})
         ON CONFLICT (slug) DO UPDATE SET
           title = EXCLUDED.title,
+          subtitle = EXCLUDED.subtitle,
+          image_url = EXCLUDED.image_url,
           body = EXCLUDED.body,
           updated_at = EXCLUDED.updated_at
       `;
@@ -514,6 +547,8 @@ export async function updatePageContent(
   const file = loadPagesFile();
   file[slug] = {
     title: next.title,
+    subtitle: next.subtitle,
+    imageUrl: next.imageUrl,
     body: next.body,
     updatedAt: next.updatedAt,
   };
