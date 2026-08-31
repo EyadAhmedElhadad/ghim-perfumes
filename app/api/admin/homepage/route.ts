@@ -66,6 +66,18 @@ export async function PUT(req: NextRequest) {
     }
     patch.featuredProductIds = obj.featuredProductIds as string[];
   }
+  if (obj.signatureProductIds !== undefined) {
+    if (
+      !Array.isArray(obj.signatureProductIds) ||
+      !obj.signatureProductIds.every((x) => typeof x === 'string')
+    ) {
+      return NextResponse.json(
+        { error: 'signatureProductIds must be an array of strings' },
+        { status: 400 },
+      );
+    }
+    patch.signatureProductIds = obj.signatureProductIds as string[];
+  }
 
   const content = await updateHomepageContent(patch);
   revalidatePath('/', 'layout');

@@ -274,6 +274,8 @@ export type HomepageContent = {
   heroCtaUrl: string;
   announcementText: string;
   featuredProductIds: string[];
+  /** Products shown in the "Signatures" grid on the homepage. Empty = show all products (fallback). */
+  signatureProductIds: string[];
 };
 
 export const DEFAULT_HOMEPAGE_CONTENT: HomepageContent = {
@@ -284,6 +286,7 @@ export const DEFAULT_HOMEPAGE_CONTENT: HomepageContent = {
   heroCtaUrl: '/products',
   announcementText: 'Pick any 2 perfumes. Get 30% off + free shipping',
   featuredProductIds: [],
+  signatureProductIds: [],
 };
 
 const HOMEPAGE_DEMO_FILE = path.join(DEMO_DIR, 'homepage-content.json');
@@ -295,9 +298,11 @@ function loadHomepageFile(): HomepageContent {
     const merged: HomepageContent = { ...DEFAULT_HOMEPAGE_CONTENT, ...parsed };
     if (!Array.isArray(merged.featuredProductIds))
       merged.featuredProductIds = [];
+    if (!Array.isArray(merged.signatureProductIds))
+      merged.signatureProductIds = [];
     return merged;
   } catch {
-    return { ...DEFAULT_HOMEPAGE_CONTENT, featuredProductIds: [] };
+    return { ...DEFAULT_HOMEPAGE_CONTENT, featuredProductIds: [], signatureProductIds: [] };
   }
 }
 
@@ -321,9 +326,12 @@ async function ensureHomepageTable(): Promise<void> {
       hero_cta_text TEXT NOT NULL DEFAULT '',
       hero_cta_url TEXT NOT NULL DEFAULT '',
       announcement_text TEXT NOT NULL DEFAULT '',
-      featured_product_ids JSONB NOT NULL DEFAULT '[]'::jsonb
+      featured_product_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+      signature_product_ids JSONB NOT NULL DEFAULT '[]'::jsonb
     );
   `;
+  // Backfill for deployments created before signature selection existed
+  await sql`ALTER TABLE homepage_content ADD COLUMN IF NOT EXISTS signature_product_ids JSONB NOT NULL DEFAULT '[]'::jsonb`;
 }
 
 const HOMEPAGE_JSONB_COLS = new Set(['featured_product_ids']);
@@ -337,6 +345,14 @@ function rowToHomepage(row: Record<string, unknown>): HomepageContent {
       featured = [];
     }
   }
+  let signature: unknown = row.signature_product_ids;
+  if (typeof signature === 'string') {
+    try {
+      signature = JSON.parse(signature);
+    } catch {
+      signature = [];
+    }
+  }
   return {
     heroHeadline: String(row.hero_headline ?? ''),
     heroSubheadline: String(row.hero_subheadline ?? ''),
@@ -347,6 +363,9 @@ function rowToHomepage(row: Record<string, unknown>): HomepageContent {
     featuredProductIds: Array.isArray(featured)
       ? (featured as unknown[]).filter((x) => typeof x === 'string') as string[]
       : [],
+    signatureProductIds: Array.isArray(signature)
+      ? (signature as unknown[]).filter((x) => typeof x === 'string') as string[]
+      : [],
   };
 }
 
@@ -354,7 +373,7 @@ async function loadHomepageNeon(): Promise<HomepageContent> {
   const sql = getNeon();
   await ensureHomepageTable();
   const rows = (await sql`SELECT * FROM homepage_content WHERE id = 'global' LIMIT 1`) as unknown[];
-  if (rows.length === 0) return { ...DEFAULT_HOMEPAGE_CONTENT, featuredProductIds: [] };
+  if (rows.length === 0) return { ...DEFAULT_HOMEPAGE_CONTENT, featuredProductIds: [], signatureProductIds: [] };
   return {
     ...DEFAULT_HOMEPAGE_CONTENT,
     ...rowToHomepage(rows[0] as Record<string, unknown>),
@@ -367,10 +386,10 @@ async function saveHomepageNeon(data: HomepageContent): Promise<void> {
   await sql`
     INSERT INTO homepage_content (
       id, hero_headline, hero_subheadline, hero_background_url,
-      hero_cta_text, hero_cta_url, announcement_text, featured_product_ids
+      hero_cta_text, hero_cta_url, announcement_text, featured_product_ids, signature_product_ids
     ) VALUES (
       'global', ${data.heroHeadline}, ${data.heroSubheadline}, ${data.heroBackgroundUrl},
-      ${data.heroCtaText}, ${data.heroCtaUrl}, ${data.announcementText}, ${JSON.stringify(data.featuredProductIds)}::jsonb
+      ${data.heroCtaText}, ${data.heroCtaUrl}, ${data.announcementText}, ${JSON.stringify(data.featuredProductIds)}::jsonb, ${JSON.stringify(data.signatureProductIds)}::jsonb
     )
     ON CONFLICT (id) DO UPDATE SET
       hero_headline = EXCLUDED.hero_headline,
@@ -379,7 +398,8 @@ async function saveHomepageNeon(data: HomepageContent): Promise<void> {
       hero_cta_text = EXCLUDED.hero_cta_text,
       hero_cta_url = EXCLUDED.hero_cta_url,
       announcement_text = EXCLUDED.announcement_text,
-      featured_product_ids = EXCLUDED.featured_product_ids
+      featured_product_ids = EXCLUDED.featured_product_ids,
+      signature_product_ids = EXCLUDED.signature_product_ids
   `;
 }
 
@@ -405,6 +425,10 @@ export async function updateHomepageContent(
       patch.featuredProductIds && Array.isArray(patch.featuredProductIds)
         ? patch.featuredProductIds
         : current.featuredProductIds,
+    signatureProductIds:
+      patch.signatureProductIds && Array.isArray(patch.signatureProductIds)
+        ? patch.signatureProductIds
+        : current.signatureProductIds,
   };
   if (isDbConfigured()) {
     try {

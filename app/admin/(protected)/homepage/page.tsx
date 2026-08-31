@@ -21,6 +21,7 @@ type HomepageContent = {
   heroCtaUrl: string;
   announcementText: string;
   featuredProductIds: string[];
+  signatureProductIds: string[];
 };
 
 export default function HomepageEditor() {
@@ -101,7 +102,8 @@ export default function HomepageEditor() {
     );
   }
 
-  const featured = home.featuredProductIds;
+  const featured = home.featuredProductIds ?? [];
+  const signature = home.signatureProductIds ?? [];
   const productById = (id: string) =>
     products.find((p) => p.id === id || p.slug === id);
 
@@ -118,6 +120,20 @@ export default function HomepageEditor() {
   function add(id: string) {
     if (!id || featured.includes(id)) return;
     patch({ featuredProductIds: [...featured, id] });
+  }
+  function moveSignature(idx: number, dir: -1 | 1) {
+    const next = [...signature];
+    const j = idx + dir;
+    if (j < 0 || j >= next.length) return;
+    [next[idx], next[j]] = [next[j], next[idx]];
+    patch({ signatureProductIds: next });
+  }
+  function removeSignature(idx: number) {
+    patch({ signatureProductIds: signature.filter((_, i) => i !== idx) });
+  }
+  function addSignature(id: string) {
+    if (!id || signature.includes(id)) return;
+    patch({ signatureProductIds: [...signature, id] });
   }
 
   return (
@@ -333,6 +349,119 @@ export default function HomepageEditor() {
             </option>
             {products
               .filter((p) => !featured.includes(p.id))
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+          </select>
+          <Button type="submit" variant="secondary">
+            Add
+          </Button>
+        </form>
+      </Panel>
+
+      {/* Signatures — products shown on the Homepage Signatures grid */}
+      <Panel
+        title='Signatures (Homepage)'
+        action={
+          <Button
+            onClick={() => save('Signatures', { signatureProductIds: home.signatureProductIds })}
+            disabled={saving === 'signatures'}
+          >
+            {saving === 'signatures' ? <Spinner /> : null}
+            Save order
+          </Button>
+        }
+      >
+        <p className="mb-3 text-sm text-on-surface-variant">
+          Choose which products appear in the homepage <span className="font-medium text-on-surface">Signatures</span> grid. Leave empty to show all products (default).
+        </p>
+
+        <ul className="mb-4 space-y-2">
+          {signature.length === 0 ? (
+            <li className="rounded-lg border border-dashed border-outline-variant/50 py-6 text-center text-sm text-on-surface-variant">
+              No signature selection — the grid currently shows all products.
+            </li>
+          ) : (
+            signature.map((id, idx) => {
+              const p = productById(id);
+              return (
+                <li
+                  key={id}
+                  className="flex items-center gap-3 rounded-lg border border-outline-variant/40 bg-surface-container p-3"
+                >
+                  <span className="w-6 text-center text-sm text-on-surface-variant">
+                    {idx + 1}
+                  </span>
+                  {p?.images?.[0]?.url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.images[0].url}
+                      alt=""
+                      className="size-10 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="size-10 rounded-lg bg-surface-container-high" />
+                  )}
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-on-surface">
+                    {p?.name ?? id}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => moveSignature(idx, -1)}
+                      disabled={idx === 0}
+                      aria-label="Move up"
+                    >
+                      ↑
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => moveSignature(idx, 1)}
+                      disabled={idx === signature.length - 1}
+                      aria-label="Move down"
+                    >
+                      ↓
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={() => removeSignature(idx)}
+                      aria-label="Remove"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                </li>
+              );
+            })
+          )}
+        </ul>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const sel = e.currentTarget.elements.namedItem(
+              'addSignature',
+            ) as HTMLSelectElement;
+            addSignature(sel.value);
+            sel.value = '';
+          }}
+          className="flex gap-2"
+        >
+          <select
+            name="addSignature"
+            defaultValue=""
+            className="min-w-0 flex-1 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface"
+          >
+            <option value="" disabled>
+              Add a product to Signatures…
+            </option>
+            {products
+              .filter((p) => !signature.includes(p.id))
               .map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}

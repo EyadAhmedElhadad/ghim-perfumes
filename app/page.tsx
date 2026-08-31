@@ -44,6 +44,18 @@ export default async function HomePage() {
           .filter((p): p is (typeof products)[number] => p !== null)
       : products;
 
+  // Signatures: admin-curated grid — if the admin has selected specific products,
+  // show only those in the chosen order; otherwise show the full catalog.
+  const signatureProducts =
+    home.signatureProductIds.length > 0
+      ? home.signatureProductIds
+          .map(
+            (id) =>
+              products.find((p) => p.id === id || p.slug === id) ?? null,
+          )
+          .filter((p): p is (typeof products)[number] => p !== null)
+      : products;
+
   const toCartItem = (p: (typeof products)[number]) => ({
     id: p.id,
     slug: p.slug,
@@ -188,7 +200,7 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-2 gap-gutter sm:grid-cols-3 lg:grid-cols-4">
-            {products.map((p) => (
+            {signatureProducts.map((p) => (
               <Link
                 key={p.id}
                 href={`/products/${p.slug}`}
