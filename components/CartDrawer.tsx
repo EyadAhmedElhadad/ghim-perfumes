@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useCart, selectCount, selectSubtotal } from '@/store/cart';
 import { formatPrice } from '@/lib/format';
 import ProductImage from '@/components/ProductImage';
+import { usePublicContent } from '@/components/public-content';
 import {
   CloseIcon,
   GiftIcon,
@@ -13,8 +14,6 @@ import {
   TruckIcon,
 } from './icons';
 import Link from 'next/link';
-
-const PROMO_THRESHOLD = 2;
 
 export default function CartDrawer() {
   const items = useCart((s) => s.items);
@@ -29,15 +28,28 @@ export default function CartDrawer() {
   const count = useCart(selectCount);
   const subtotal = useCart(selectSubtotal);
   const currency = items[0]?.currency ?? 'EGP';
+  const { siteSettings } = usePublicContent();
 
   const [noteOpen, setNoteOpen] = useState(false);
 
-  const remaining = Math.max(0, PROMO_THRESHOLD - count);
-  const progress = Math.min(1, count / PROMO_THRESHOLD);
-  const promoCopy =
-    remaining > 0
-      ? `Add ${remaining} more perfume${remaining > 1 ? 's' : ''} to get 30% OFF + Free Shipping`
-      : "You've unlocked 30% OFF + Free Shipping!";
+  const bundleEnabled = siteSettings.bundleDiscountEnabled ?? true;
+  const bundlePercentage = siteSettings.bundleDiscountPercentage ?? 30;
+  const bundleMinQuantity = siteSettings.bundleMinQuantity ?? 2;
+  const bundleOfferText = siteSettings.bundleOfferText || 'اطلب واحدة كمان عشان تفعل العرض';
+  const bundleUnlockedText = siteSettings.bundleUnlockedText || 'تم تفعيل خصم 30% + الشحن المجاني 🎉';
+  const isBundleUnlocked = bundleEnabled && count >= bundleMinQuantity;
+  const remaining = Math.max(0, bundleMinQuantity - count);
+  const progress = bundleMinQuantity > 0 ? Math.min(1, count / bundleMinQuantity) : 1;
+  const bundleDiscountAmount = isBundleUnlocked
+    ? Math.round((subtotal * bundlePercentage) / 100 * 100) / 100
+    : 0;
+  const displaySubtotalAfterBundle = Math.max(0, subtotal - bundleDiscountAmount);
+  // Use dynamic Arabic texts with fallback; English promoCopy kept only if bundle texts empty (fallback handled above)
+  const promoCopy = !bundleEnabled
+    ? ''
+    : isBundleUnlocked
+      ? bundleUnlockedText
+      : bundleOfferText;
 
   return (
     <>
@@ -68,8 +80,8 @@ export default function CartDrawer() {
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
             <p className="font-headline-lg text-on-surface">Your bag is empty.</p>
-            <p className="font-body-md text-sm text-on-surface-variant">
-              Add a fragrance to get 30% off + free shipping.
+            <p className="font-body-md text-sm text-on-surface-variant" dir="rtl">
+              {bundleEnabled ? bundleOfferText : 'Add a fragrance to your bag.'}
             </p>
             <button
               onClick={close}
@@ -80,21 +92,28 @@ export default function CartDrawer() {
           </div>
         ) : (
           <>
-            {/* Free shipping / discount progress */}
-            <div className="border-b border-outline-variant/60 px-5 py-4">
-              <div className="flex items-center gap-2">
-                <TruckIcon className="h-4 w-4 shrink-0 text-secondary" />
-                <p className="font-body-md text-xs text-on-surface-variant">
-                  {promoCopy}
-                </p>
+            {/* Bundle incentive + progress — dynamic Arabic, RTL-ready */}
+            {bundleEnabled && (
+              <div className="border-b border-outline-variant/60 px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <TruckIcon className="h-4 w-4 shrink-0 text-secondary" />
+                  <p className="font-body-md text-xs text-on-surface-variant" dir="rtl">
+                    {promoCopy}
+                  </p>
+                </div>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high">
+                  <div
+                    className="h-full rounded-full bg-secondary transition-all duration-500"
+                    style={{ width: `${Math.round(progress * 100)}%` }}
+                  />
+                </div>
+                {isBundleUnlocked && bundleDiscountAmount > 0 && (
+                  <p className="mt-2 text-xs font-medium text-emerald-300" dir="rtl">
+                    خصم العرض ({bundlePercentage}%): -{formatPrice(bundleDiscountAmount, currency)}
+                  </p>
+                )}
               </div>
-              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high">
-                <div
-                  className="h-full rounded-full bg-secondary transition-all duration-500"
-                  style={{ width: `${Math.round(progress * 100)}%` }}
-                />
-              </div>
-            </div>
+            )}
 
             <div className="hide-scrollbar flex-1 overflow-y-auto px-5 py-4">
               <ul className="space-y-4">
@@ -239,13 +258,28 @@ export default function CartDrawer() {
             </div>
 
             <div className="border-t border-outline-variant/60 px-5 py-4">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="font-body-md text-sm text-on-surface-variant">
-                  Estimated total
-                </span>
-                <span className="font-headline-md text-lg font-semibold text-on-surface">
-                  {formatPrice(subtotal, currency)}
-                </span>
+              {/* Price breakdown with bundle discount */}
+              <div className="mb-3 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-body-md text-sm text-on-surface-variant">Subtotal</span>
+                  <span className="font-body-md text-sm text-on-surface-variant">
+                    {formatPrice(subtotal, currency)}
+                  </span>
+                </div>
+                {isBundleUnlocked && bundleDiscountAmount > 0 && (
+                  <div className="flex items-center justify-between text-emerald-300">
+                    <span className="font-body-md text-sm" dir="rtl">
+                      خصم العرض ({bundlePercentage}%):
+                    </span>
+                    <span className="font-body-md text-sm font-medium">-{formatPrice(bundleDiscountAmount, currency)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-body-md text-sm text-on-surface-variant">Estimated total</span>
+                  <span className="font-headline-md text-lg font-semibold text-secondary">
+                    {formatPrice(isBundleUnlocked ? displaySubtotalAfterBundle : subtotal, currency)}
+                  </span>
+                </div>
               </div>
               <Link
                 href="/checkout"

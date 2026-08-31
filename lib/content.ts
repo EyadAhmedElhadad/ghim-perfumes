@@ -27,6 +27,12 @@ export type SiteSettings = {
   // `defaultShippingFee`. Admins edit these from the settings page.
   defaultShippingFee: number;
   shippingFees: Record<string, number>;
+  // Bundle offer & cart banner — automatic 30% off when cart quantity reaches threshold
+  bundleDiscountEnabled: boolean;
+  bundleDiscountPercentage: number;
+  bundleMinQuantity: number;
+  bundleOfferText: string;
+  bundleUnlockedText: string;
 };
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -43,6 +49,11 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     'Luxury Middle Eastern fragrances composed for the hours between dusk and dawn.',
   defaultShippingFee: 0,
   shippingFees: {},
+  bundleDiscountEnabled: true,
+  bundleDiscountPercentage: 30,
+  bundleMinQuantity: 2,
+  bundleOfferText: 'اطلب واحدة كمان عشان تفعل العرض',
+  bundleUnlockedText: 'تم تفعيل خصم 30% + الشحن المجاني 🎉',
 };
 
 const DEMO_DIR = path.join(process.cwd(), 'data');
@@ -87,6 +98,8 @@ async function ensureTable(): Promise<void> {
   `;
   // Shipping config is a flexible map, so it lives in a single JSONB column.
   await sql`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS shipping_config JSONB`;
+  // Bundle offer config — also JSONB for flexibility and backwards compat
+  await sql`ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS bundle_config JSONB`;
 }
 
 function parseShippingConfig(raw: unknown): {
@@ -119,8 +132,39 @@ function safeJsonParse(s: string): unknown {
   }
 }
 
+function parseBundleConfig(raw: unknown): {
+  enabled: boolean;
+  percentage: number;
+  minQuantity: number;
+  offerText: string;
+  unlockedText: string;
+} {
+  let enabled = DEFAULT_SITE_SETTINGS.bundleDiscountEnabled;
+  let percentage = DEFAULT_SITE_SETTINGS.bundleDiscountPercentage;
+  let minQuantity = DEFAULT_SITE_SETTINGS.bundleMinQuantity;
+  let offerText = DEFAULT_SITE_SETTINGS.bundleOfferText;
+  let unlockedText = DEFAULT_SITE_SETTINGS.bundleUnlockedText;
+  if (!raw) return { enabled, percentage, minQuantity, offerText, unlockedText };
+  const cfg = typeof raw === 'string' ? safeJsonParse(raw) : raw;
+  if (cfg && typeof cfg === 'object') {
+    const c = cfg as Record<string, unknown>;
+    if (typeof c.enabled === 'boolean') enabled = c.enabled;
+    else if (typeof c.bundleDiscountEnabled === 'boolean') enabled = c.bundleDiscountEnabled;
+    const pct = Number(c.percentage ?? c.bundleDiscountPercentage);
+    if (Number.isFinite(pct) && pct >= 0 && pct <= 100) percentage = pct;
+    const mq = Number(c.minQuantity ?? c.bundleMinQuantity);
+    if (Number.isFinite(mq) && mq >= 1 && mq <= 100) minQuantity = Math.floor(mq);
+    const ot = c.offerText ?? c.bundleOfferText;
+    if (typeof ot === 'string' && ot.trim()) offerText = ot.trim().slice(0, 200);
+    const ut = c.unlockedText ?? c.bundleUnlockedText;
+    if (typeof ut === 'string' && ut.trim()) unlockedText = ut.trim().slice(0, 200);
+  }
+  return { enabled, percentage, minQuantity, offerText, unlockedText };
+}
+
 function rowToSettings(row: Record<string, unknown>): SiteSettings {
   const { defaultFee, fees } = parseShippingConfig(row.shipping_config);
+  const bundle = parseBundleConfig(row.bundle_config);
   return {
     brandName: String(row.brand_name ?? ''),
     instagramUrl: String(row.instagram_url ?? ''),
@@ -133,6 +177,11 @@ function rowToSettings(row: Record<string, unknown>): SiteSettings {
     seoDescription: String(row.seo_description ?? ''),
     defaultShippingFee: defaultFee,
     shippingFees: fees,
+    bundleDiscountEnabled: bundle.enabled,
+    bundleDiscountPercentage: bundle.percentage,
+    bundleMinQuantity: bundle.minQuantity,
+    bundleOfferText: bundle.offerText,
+    bundleUnlockedText: bundle.unlockedText,
   };
 }
 
@@ -154,13 +203,20 @@ async function saveNeon(data: SiteSettings): Promise<void> {
     INSERT INTO site_settings (
       id, brand_name, instagram_url, whatsapp_number, contact_email,
       contact_phone, footer_text, copyright_text, seo_title, seo_description,
-      shipping_config
+      shipping_config, bundle_config
     ) VALUES (
       'global', ${data.brandName}, ${data.instagramUrl}, ${data.whatsappNumber}, ${data.contactEmail},
       ${data.contactPhone}, ${data.footerText}, ${data.copyrightText}, ${data.seoTitle}, ${data.seoDescription},
       ${JSON.stringify({
         defaultFee: data.defaultShippingFee,
         fees: data.shippingFees,
+      })}::jsonb,
+      ${JSON.stringify({
+        enabled: data.bundleDiscountEnabled,
+        percentage: data.bundleDiscountPercentage,
+        minQuantity: data.bundleMinQuantity,
+        offerText: data.bundleOfferText,
+        unlockedText: data.bundleUnlockedText,
       })}::jsonb
     )
     ON CONFLICT (id) DO UPDATE SET
@@ -173,7 +229,8 @@ async function saveNeon(data: SiteSettings): Promise<void> {
       copyright_text = EXCLUDED.copyright_text,
       seo_title = EXCLUDED.seo_title,
       seo_description = EXCLUDED.seo_description,
-      shipping_config = EXCLUDED.shipping_config
+      shipping_config = EXCLUDED.shipping_config,
+      bundle_config = EXCLUDED.bundle_config
   `;
 }
 

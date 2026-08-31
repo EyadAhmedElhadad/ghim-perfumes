@@ -88,6 +88,69 @@ export async function PUT(req: NextRequest) {
     patch.shippingFees = fees;
   }
 
+  // Bundle offer settings — admin controlled incentive texts & 30% auto-discount
+  if (obj.bundleDiscountEnabled !== undefined) {
+    if (typeof obj.bundleDiscountEnabled !== 'boolean') {
+      return NextResponse.json(
+        { error: 'bundleDiscountEnabled must be a boolean' },
+        { status: 400 },
+      );
+    }
+    patch.bundleDiscountEnabled = obj.bundleDiscountEnabled;
+  }
+  if (obj.bundleDiscountPercentage !== undefined) {
+    const n = Number(obj.bundleDiscountPercentage);
+    if (!Number.isFinite(n) || n < 0 || n > 100) {
+      return NextResponse.json(
+        { error: 'bundleDiscountPercentage must be between 0 and 100' },
+        { status: 400 },
+      );
+    }
+    patch.bundleDiscountPercentage = n;
+  }
+  if (obj.bundleMinQuantity !== undefined) {
+    const n = Number(obj.bundleMinQuantity);
+    if (!Number.isInteger(n) || n < 1 || n > 100) {
+      return NextResponse.json(
+        { error: 'bundleMinQuantity must be an integer between 1 and 100' },
+        { status: 400 },
+      );
+    }
+    patch.bundleMinQuantity = n;
+  }
+  if (obj.bundleOfferText !== undefined) {
+    if (typeof obj.bundleOfferText !== 'string') {
+      return NextResponse.json(
+        { error: 'bundleOfferText must be a string' },
+        { status: 400 },
+      );
+    }
+    const t = obj.bundleOfferText.trim().slice(0, 200);
+    if (!t) {
+      return NextResponse.json(
+        { error: 'bundleOfferText cannot be empty' },
+        { status: 400 },
+      );
+    }
+    patch.bundleOfferText = t;
+  }
+  if (obj.bundleUnlockedText !== undefined) {
+    if (typeof obj.bundleUnlockedText !== 'string') {
+      return NextResponse.json(
+        { error: 'bundleUnlockedText must be a string' },
+        { status: 400 },
+      );
+    }
+    const t = obj.bundleUnlockedText.trim().slice(0, 200);
+    if (!t) {
+      return NextResponse.json(
+        { error: 'bundleUnlockedText cannot be empty' },
+        { status: 400 },
+      );
+    }
+    patch.bundleUnlockedText = t;
+  }
+
   const settings = await updateSiteSettings(patch);
   revalidatePath('/', 'layout');
   return NextResponse.json({ settings });

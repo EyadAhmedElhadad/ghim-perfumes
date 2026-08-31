@@ -114,6 +114,10 @@ export type Order = {
   discountCode?: string | null;
   /** Discount amount applied (EGP) — server-calculated, never trusted from client */
   discountAmount?: number;
+  /** Automatic bundle discount amount (EGP) when quantity threshold met */
+  bundleDiscountAmount?: number;
+  /** Bundle discount percentage applied (e.g. 30) */
+  bundleDiscountPercentage?: number;
 };
 
 export type AdminProduct = {

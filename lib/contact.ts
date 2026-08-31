@@ -25,6 +25,8 @@ export type WhatsAppOrderInput = {
   currency: string;
   discountCode?: string | null;
   discountAmount?: number;
+  bundleDiscountAmount?: number;
+  bundleDiscountPercentage?: number;
 };
 
 function formatMoney(value: number, currency: string): string {
@@ -55,11 +57,16 @@ export function formatOrderMessage(o: WhatsAppOrderInput): string {
   }
   lines.push('');
   lines.push(`Subtotal: ${formatMoney(o.subtotal, o.currency)}`);
+  if (o.bundleDiscountAmount && o.bundleDiscountAmount > 0) {
+    lines.push(`Bundle Discount (${o.bundleDiscountPercentage ?? 30}%): -${formatMoney(o.bundleDiscountAmount, o.currency)}`);
+  }
   if (o.discountCode && o.discountAmount && o.discountAmount > 0) {
     lines.push(`Discount (${o.discountCode}): -${formatMoney(o.discountAmount, o.currency)}`);
   }
   if (o.shipping > 0) {
     lines.push(`Shipping: ${formatMoney(o.shipping, o.currency)}`);
+  } else {
+    lines.push(`Shipping: Free`);
   }
   lines.push(`Total: ${formatMoney(o.total, o.currency)}`);
   lines.push('Payment: Cash on Delivery');

@@ -14,6 +14,11 @@ export type PublicSiteSettings = {
   seoDescription: string;
   defaultShippingFee: number;
   shippingFees: Record<string, number>;
+  bundleDiscountEnabled: boolean;
+  bundleDiscountPercentage: number;
+  bundleMinQuantity: number;
+  bundleOfferText: string;
+  bundleUnlockedText: string;
 };
 
 export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
@@ -30,6 +35,11 @@ export const DEFAULT_PUBLIC_SITE_SETTINGS: PublicSiteSettings = {
     'Luxury Middle Eastern fragrances composed for the hours between dusk and dawn.',
   defaultShippingFee: 0,
   shippingFees: {},
+  bundleDiscountEnabled: true,
+  bundleDiscountPercentage: 30,
+  bundleMinQuantity: 2,
+  bundleOfferText: 'اطلب واحدة كمان عشان تفعل العرض',
+  bundleUnlockedText: 'تم تفعيل خصم 30% + الشحن المجاني 🎉',
 };
 
 type PublicContent = {
@@ -48,11 +58,24 @@ async function load(): Promise<PublicContent> {
   inflight = fetch('/api/public/content', { cache: 'no-store' })
     .then((r) => r.json())
     .then((d) => {
+      const raw = (d?.siteSettings ?? {}) as Partial<PublicSiteSettings>;
+      const merged: PublicSiteSettings = {
+        ...DEFAULT_PUBLIC_SITE_SETTINGS,
+        ...raw,
+      };
+      // seamless fallback if DB fields are empty / undefined
+      if (typeof merged.bundleOfferText !== 'string' || !merged.bundleOfferText.trim())
+        merged.bundleOfferText = DEFAULT_PUBLIC_SITE_SETTINGS.bundleOfferText;
+      if (typeof merged.bundleUnlockedText !== 'string' || !merged.bundleUnlockedText.trim())
+        merged.bundleUnlockedText = DEFAULT_PUBLIC_SITE_SETTINGS.bundleUnlockedText;
+      if (typeof merged.bundleDiscountEnabled !== 'boolean')
+        merged.bundleDiscountEnabled = DEFAULT_PUBLIC_SITE_SETTINGS.bundleDiscountEnabled;
+      if (!Number.isFinite(merged.bundleDiscountPercentage) || merged.bundleDiscountPercentage < 0 || merged.bundleDiscountPercentage > 100)
+        merged.bundleDiscountPercentage = DEFAULT_PUBLIC_SITE_SETTINGS.bundleDiscountPercentage;
+      if (!Number.isFinite(merged.bundleMinQuantity) || merged.bundleMinQuantity < 1)
+        merged.bundleMinQuantity = DEFAULT_PUBLIC_SITE_SETTINGS.bundleMinQuantity;
       cache = {
-        siteSettings: {
-          ...DEFAULT_PUBLIC_SITE_SETTINGS,
-          ...(d?.siteSettings ?? {}),
-        },
+        siteSettings: merged,
         announcementText:
           typeof d?.announcementText === 'string' && d.announcementText.trim()
             ? d.announcementText

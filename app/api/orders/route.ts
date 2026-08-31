@@ -46,9 +46,12 @@ export async function POST(req: Request) {
       {
         id: order.id,
         total: order.total,
+        shipping: order.shipping,
         status: order.status,
         discountCode: order.discountCode,
         discountAmount: order.discountAmount,
+        bundleDiscountAmount: order.bundleDiscountAmount,
+        bundleDiscountPercentage: order.bundleDiscountPercentage,
       },
       { status: 201 },
     );

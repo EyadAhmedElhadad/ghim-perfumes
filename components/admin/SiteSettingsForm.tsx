@@ -207,6 +207,114 @@ export default function SiteSettingsForm() {
         ))}
       </div>
     </Panel>
+
+    <Panel title="Bundle Offer & Cart Banner Settings">
+      <p className="mb-4 text-sm text-on-surface-variant">
+        Manage the automatic bundle discount and the Arabic incentive messages shown in the cart drawer and checkout when the cart quantity threshold is reached.
+      </p>
+
+      {/* Enable / Disable */}
+      <Field label="Enable Bundle Offer">
+        <label className="flex items-center gap-3 rounded-lg border border-outline-variant/40 bg-surface-container-high px-3 py-2.5">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={form.bundleDiscountEnabled}
+            onClick={() =>
+              setForm((prev) => ({
+                ...prev!,
+                bundleDiscountEnabled: !prev!.bundleDiscountEnabled,
+              }))
+            }
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors ${
+              form.bundleDiscountEnabled
+                ? 'border-emerald-400/40 bg-emerald-500/20'
+                : 'border-outline-variant/40 bg-surface-container'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                form.bundleDiscountEnabled ? 'translate-x-6 bg-emerald-300' : 'translate-x-1 bg-slate-400'
+              }`}
+            />
+          </button>
+          <span className="text-sm text-on-surface">
+            {form.bundleDiscountEnabled ? 'Enabled — bundle discount is active' : 'Disabled — no automatic discount'}
+          </span>
+        </label>
+      </Field>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <Field label="Bundle Discount Percentage (%)" hint="e.g. 30 for 30% off">
+          <Input
+            type="number"
+            min={0}
+            max={100}
+            step={1}
+            value={form.bundleDiscountPercentage ?? 30}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev!,
+                bundleDiscountPercentage: e.target.value === '' ? 0 : Number(e.target.value),
+              }))
+            }
+          />
+        </Field>
+        <Field label="Minimum Quantity" hint="e.g. 2 perfumes to trigger">
+          <Input
+            type="number"
+            min={1}
+            max={100}
+            step={1}
+            value={form.bundleMinQuantity ?? 2}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev!,
+                bundleMinQuantity: e.target.value === '' ? 2 : Number(e.target.value),
+              }))
+            }
+          />
+        </Field>
+      </div>
+
+      <div className="mt-4 grid gap-4">
+        <Field label="Pre-Unlock Message" hint="Shown when quantity < threshold — RTL Arabic">
+          <Input
+            dir="rtl"
+            value={form.bundleOfferText ?? ''}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev!, bundleOfferText: e.target.value }))
+            }
+            placeholder="اطلب واحدة كمان عشان تفعل العرض"
+            className="text-right"
+          />
+        </Field>
+        <Field label="Post-Unlock Success Message" hint="Shown when discount unlocked — RTL Arabic">
+          <Input
+            dir="rtl"
+            value={form.bundleUnlockedText ?? ''}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev!, bundleUnlockedText: e.target.value }))
+            }
+            placeholder="تم تفعيل خصم 30% + الشحن المجاني 🎉"
+            className="text-right"
+          />
+        </Field>
+      </div>
+
+      <div className="mt-4 rounded-lg border border-amber-400/20 bg-amber-500/5 px-3 py-2.5 text-xs leading-relaxed text-on-surface-variant">
+        <span className="font-medium text-amber-300">Preview: </span>
+        <span dir="rtl" className="inline-block">
+          {form.bundleDiscountEnabled
+            ? `عند ${form.bundleMinQuantity ?? 2} قطع → ${form.bundleUnlockedText || 'تم تفعيل خصم 30% + الشحن المجاني 🎉'}`
+            : 'العرض معطّل'}
+        </span>
+        <span className="mx-2 text-outline-variant">|</span>
+        <span dir="rtl" className="inline-block">
+          {form.bundleOfferText || 'اطلب واحدة كمان عشان تفعل العرض'}
+        </span>
+      </div>
+    </Panel>
     </>
   );
 }

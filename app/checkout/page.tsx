@@ -94,10 +94,25 @@ export default function CheckoutPage() {
 
   const shippingFees = siteSettings.shippingFees ?? {};
   const defaultShippingFee = siteSettings.defaultShippingFee ?? 0;
-  const shipping =
+  const rawShipping =
     form.governorate && shippingFees[form.governorate] != null
       ? Number(shippingFees[form.governorate])
       : defaultShippingFee;
+
+  // Bundle offer — dynamic, admin-controlled, RTL Arabic
+  const count = useCart(selectCount);
+  const bundleEnabled = siteSettings.bundleDiscountEnabled ?? true;
+  const bundlePercentage = siteSettings.bundleDiscountPercentage ?? 30;
+  const bundleMinQuantity = siteSettings.bundleMinQuantity ?? 2;
+  const bundleOfferText = siteSettings.bundleOfferText || 'اطلب واحدة كمان عشان تفعل العرض';
+  const bundleUnlockedText = siteSettings.bundleUnlockedText || 'تم تفعيل خصم 30% + الشحن المجاني 🎉';
+  const isBundleUnlocked = bundleEnabled && count >= bundleMinQuantity;
+  const bundleDiscountAmount = isBundleUnlocked
+    ? Math.round((subtotal * bundlePercentage) / 100 * 100) / 100
+    : 0;
+  const shipping = isBundleUnlocked ? 0 : rawShipping;
+  const bundleProgress = bundleMinQuantity > 0 ? Math.min(1, count / bundleMinQuantity) : 1;
+  const bundlePromoCopy = !bundleEnabled ? '' : isBundleUnlocked ? bundleUnlockedText : bundleOfferText;
 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -111,7 +126,7 @@ export default function CheckoutPage() {
     discountAmount: number;
   } | null>(null);
   const discountAmount = appliedDiscount?.discountAmount ?? 0;
-  const orderTotal = Math.max(0, subtotal - discountAmount + shipping);
+  const orderTotal = Math.max(0, subtotal - bundleDiscountAmount - discountAmount + shipping);
   const [placed, setPlaced] = useState<{
     id: string;
     total: number;
@@ -314,11 +329,13 @@ export default function CheckoutPage() {
         }${form.city.trim() ? `, ${form.city.trim()}` : ''}`,
         items: orderItems,
         subtotal,
-        shipping,
+        shipping: data.shipping ?? shipping,
         total: data.total ?? orderTotal,
         currency,
         discountCode: appliedDiscount?.code ?? null,
         discountAmount: appliedDiscount?.discountAmount ?? 0,
+        bundleDiscountAmount,
+        bundleDiscountPercentage: bundlePercentage,
       });
 
       clear();
@@ -734,6 +751,29 @@ export default function CheckoutPage() {
                 ))}
               </ul>
 
+              {/* Bundle incentive — dynamic Arabic, RTL-ready */}
+              {bundleEnabled && (
+                <div className="mt-5 rounded-xl border border-amber-400/20 bg-amber-500/5 p-3">
+                  <div className="flex items-center gap-2">
+                    <TruckIcon className="h-4 w-4 shrink-0 text-secondary" />
+                    <p className="font-body-md text-xs text-on-surface-variant" dir="rtl">
+                      {bundlePromoCopy}
+                    </p>
+                  </div>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high">
+                    <div
+                      className="h-full rounded-full bg-secondary transition-all duration-500"
+                      style={{ width: `${Math.round(bundleProgress * 100)}%` }}
+                    />
+                  </div>
+                  {isBundleUnlocked && bundleDiscountAmount > 0 && (
+                    <p className="mt-2 text-xs font-medium text-emerald-300" dir="rtl">
+                      خصم العرض ({bundlePercentage}%): -{formatPrice(bundleDiscountAmount, currency)}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Discount code */}
               {appliedDiscount ? (
                 <div className="mt-5 flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5">
@@ -795,6 +835,12 @@ export default function CheckoutPage() {
                   <span>Subtotal</span>
                   <span>{formatPrice(subtotal, currency)}</span>
                 </div>
+                {isBundleUnlocked && bundleDiscountAmount > 0 && (
+                  <div className="flex justify-between font-body-md text-sm text-emerald-300" dir="rtl">
+                    <span>خصم العرض ({bundlePercentage}%):</span>
+                    <span>-{formatPrice(bundleDiscountAmount, currency)}</span>
+                  </div>
+                )}
                 {appliedDiscount && (
                   <div className="flex justify-between font-body-md text-sm text-emerald-300">
                     <span>Discount ({appliedDiscount.code})</span>
