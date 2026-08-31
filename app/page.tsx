@@ -14,7 +14,7 @@ import CartDrawer from '@/components/CartDrawer';
 import Stardust from '@/components/Stardust';
 import AddToCartMini from '@/components/AddToCartMini';
 import BestSellersCarousel from '@/components/BestSellersCarousel';
-import FeaturedReviews from '@/components/FeaturedReviews';
+import TestimonialsCarousel from '@/components/home/TestimonialsCarousel';
 import { listFeaturedReviews } from '@/lib/reviews';
 
 // Cache the storefront home page for 5 minutes (ISR) for fast repeat loads.
@@ -231,7 +231,8 @@ export default async function HomePage() {
         </section>
 
         <BestSellersCarousel products={featuredProducts} />
-        <FeaturedReviews reviews={featuredReviews} />
+        {/* Whispers of the Cloud — luxury carousel fed by is_featured reviews, fallback to curated quotes */}
+        <TestimonialsCarousel reviews={featuredReviews} />
       </main>
 
       <Footer />
