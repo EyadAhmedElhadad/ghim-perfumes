@@ -61,6 +61,23 @@ export async function ensureOrderReviewsTable(): Promise<void> {
   // Backfill for existing deployments that created the table before is_featured existed
   await pool.query(`ALTER TABLE order_reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT false`);
   await pool.query(`CREATE INDEX IF NOT EXISTS order_reviews_featured_idx ON order_reviews (is_featured) WHERE is_featured = true`);
+  // Bug Fix: also ensure legacy `reviews` table (if present) has is_featured column
+  // Some environments or older migrations use `reviews` instead of `order_reviews`
+  try {
+    await pool.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false NOT NULL`);
+  } catch {
+    // table `reviews` may not exist — ignore (order_reviews is canonical)
+  }
+  try {
+    await pool.query(`CREATE INDEX IF NOT EXISTS reviews_featured_idx ON reviews (is_featured) WHERE is_featured = true`);
+  } catch {
+    // ignore if table missing
+  }
+}
+
+function isMissingFeaturedColumnError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes('is_featured') && (msg.includes('does not exist') || msg.includes('column'));
 }
 
 function rowToReview(row: {
@@ -114,60 +131,125 @@ export async function upsertOrderReview(
 ): Promise<OrderReview> {
   const pool = getPool();
   await ensureOrderReviewsTable();
-  const res = await pool.query<{
-    id: string;
-    order_id: string;
-    customer_name: string | null;
-    customer_email: string | null;
-    rating: number;
-    comment: string | null;
-    tags: unknown;
-    is_featured: boolean | null;
-    created_at: string;
-  }>(
-    `INSERT INTO order_reviews (order_id, customer_name, customer_email, rating, comment, tags, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
-     ON CONFLICT (order_id) DO UPDATE SET
-        customer_name = EXCLUDED.customer_name,
-        customer_email = EXCLUDED.customer_email,
-        rating = EXCLUDED.rating,
-        comment = EXCLUDED.comment,
-        tags = EXCLUDED.tags,
-        created_at = EXCLUDED.created_at
-      RETURNING id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at`,
-    [
-      input.orderId,
-      input.customerName ?? '',
-      input.customerEmail ?? null,
-      input.rating,
-      input.comment && input.comment.trim() ? input.comment.slice(0, 2000) : null,
-      JSON.stringify(input.tags ?? []),
-      new Date().toISOString(),
-    ],
-  );
-  return rowToReview(res.rows[0]);
+  try {
+    const res = await pool.query<{
+      id: string;
+      order_id: string;
+      customer_name: string | null;
+      customer_email: string | null;
+      rating: number;
+      comment: string | null;
+      tags: unknown;
+      is_featured: boolean | null;
+      created_at: string;
+    }>(
+      `INSERT INTO order_reviews (order_id, customer_name, customer_email, rating, comment, tags, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (order_id) DO UPDATE SET
+          customer_name = EXCLUDED.customer_name,
+          customer_email = EXCLUDED.customer_email,
+          rating = EXCLUDED.rating,
+          comment = EXCLUDED.comment,
+          tags = EXCLUDED.tags,
+          created_at = EXCLUDED.created_at
+        RETURNING id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at`,
+      [
+        input.orderId,
+        input.customerName ?? '',
+        input.customerEmail ?? null,
+        input.rating,
+        input.comment && input.comment.trim() ? input.comment.slice(0, 2000) : null,
+        JSON.stringify(input.tags ?? []),
+        new Date().toISOString(),
+      ],
+    );
+    return rowToReview(res.rows[0]);
+  } catch (err) {
+    if (isMissingFeaturedColumnError(err)) {
+      await pool.query(`ALTER TABLE order_reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false NOT NULL`).catch(() => {});
+      await pool.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false NOT NULL`).catch(() => {});
+      const retry = await pool.query<{
+        id: string;
+        order_id: string;
+        customer_name: string | null;
+        customer_email: string | null;
+        rating: number;
+        comment: string | null;
+        tags: unknown;
+        is_featured: boolean | null;
+        created_at: string;
+      }>(
+        `INSERT INTO order_reviews (order_id, customer_name, customer_email, rating, comment, tags, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (order_id) DO UPDATE SET
+            customer_name = EXCLUDED.customer_name,
+            customer_email = EXCLUDED.customer_email,
+            rating = EXCLUDED.rating,
+            comment = EXCLUDED.comment,
+            tags = EXCLUDED.tags,
+            created_at = EXCLUDED.created_at
+          RETURNING id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at`,
+        [
+          input.orderId,
+          input.customerName ?? '',
+          input.customerEmail ?? null,
+          input.rating,
+          input.comment && input.comment.trim() ? input.comment.slice(0, 2000) : null,
+          JSON.stringify(input.tags ?? []),
+          new Date().toISOString(),
+        ],
+      );
+      return rowToReview(retry.rows[0]);
+    }
+    throw err;
+  }
 }
 
 export async function listOrderReviews(): Promise<OrderReview[]> {
   const pool = getPool();
   await ensureOrderReviewsTable();
-  const res = await pool.query<{
-    id: string;
-    order_id: string;
-    customer_name: string | null;
-    customer_email: string | null;
-    rating: number;
-    comment: string | null;
-    tags: unknown;
-    is_featured: boolean | null;
-    created_at: string;
-  }>(
-    `SELECT id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at
-     FROM order_reviews
-     ORDER BY created_at DESC`,
-    [],
-  );
-  return res.rows.map(rowToReview);
+  try {
+    const res = await pool.query<{
+      id: string;
+      order_id: string;
+      customer_name: string | null;
+      customer_email: string | null;
+      rating: number;
+      comment: string | null;
+      tags: unknown;
+      is_featured: boolean | null;
+      created_at: string;
+    }>(
+      `SELECT id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at
+       FROM order_reviews
+       ORDER BY created_at DESC`,
+      [],
+    );
+    return res.rows.map(rowToReview);
+  } catch (err) {
+    if (isMissingFeaturedColumnError(err)) {
+      await pool.query(`ALTER TABLE order_reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false NOT NULL`).catch(() => {});
+      await pool.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false NOT NULL`).catch(() => {});
+      const retry = await pool.query<{
+        id: string;
+        order_id: string;
+        customer_name: string | null;
+        customer_email: string | null;
+        rating: number;
+        comment: string | null;
+        tags: unknown;
+        is_featured: boolean | null;
+        created_at: string;
+      }>(
+        `SELECT id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at
+         FROM order_reviews
+         ORDER BY created_at DESC`,
+        [],
+      );
+      return retry.rows.map(rowToReview);
+    }
+    throw err;
+  }
 }
 
 export async function getReviewByOrder(
@@ -175,23 +257,47 @@ export async function getReviewByOrder(
 ): Promise<OrderReview | null> {
   const pool = getPool();
   await ensureOrderReviewsTable();
-  const res = await pool.query<{
-    id: string;
-    order_id: string;
-    customer_name: string | null;
-    customer_email: string | null;
-    rating: number;
-    comment: string | null;
-    tags: unknown;
-    is_featured: boolean | null;
-    created_at: string;
-  }>(
-    `SELECT id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at
-     FROM order_reviews WHERE order_id = $1 LIMIT 1`,
-    [orderId],
-  );
-  if (res.rows.length === 0) return null;
-  return rowToReview(res.rows[0]);
+  try {
+    const res = await pool.query<{
+      id: string;
+      order_id: string;
+      customer_name: string | null;
+      customer_email: string | null;
+      rating: number;
+      comment: string | null;
+      tags: unknown;
+      is_featured: boolean | null;
+      created_at: string;
+    }>(
+      `SELECT id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at
+       FROM order_reviews WHERE order_id = $1 LIMIT 1`,
+      [orderId],
+    );
+    if (res.rows.length === 0) return null;
+    return rowToReview(res.rows[0]);
+  } catch (err) {
+    if (isMissingFeaturedColumnError(err)) {
+      await pool.query(`ALTER TABLE order_reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false NOT NULL`).catch(() => {});
+      const retry = await pool.query<{
+        id: string;
+        order_id: string;
+        customer_name: string | null;
+        customer_email: string | null;
+        rating: number;
+        comment: string | null;
+        tags: unknown;
+        is_featured: boolean | null;
+        created_at: string;
+      }>(
+        `SELECT id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at
+         FROM order_reviews WHERE order_id = $1 LIMIT 1`,
+        [orderId],
+      );
+      if (retry.rows.length === 0) return null;
+      return rowToReview(retry.rows[0]);
+    }
+    throw err;
+  }
 }
 
 export async function deleteOrderReview(id: string): Promise<boolean> {
@@ -210,48 +316,101 @@ export async function setReviewFeatured(
 ): Promise<OrderReview | null> {
   const pool = getPool();
   await ensureOrderReviewsTable();
-  const res = await pool.query<{
-    id: string;
-    order_id: string;
-    customer_name: string | null;
-    customer_email: string | null;
-    rating: number;
-    comment: string | null;
-    tags: unknown;
-    is_featured: boolean | null;
-    created_at: string;
-  }>(
-    `UPDATE order_reviews SET is_featured = $2 WHERE id = $1
-     RETURNING id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at`,
-    [id, featured],
-  );
-  if (res.rows.length === 0) return null;
-  return rowToReview(res.rows[0]);
+  try {
+    const res = await pool.query<{
+      id: string;
+      order_id: string;
+      customer_name: string | null;
+      customer_email: string | null;
+      rating: number;
+      comment: string | null;
+      tags: unknown;
+      is_featured: boolean | null;
+      created_at: string;
+    }>(
+      `UPDATE order_reviews SET is_featured = $2 WHERE id = $1
+       RETURNING id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at`,
+      [id, featured],
+    );
+    if (res.rows.length === 0) return null;
+    return rowToReview(res.rows[0]);
+  } catch (err) {
+    if (isMissingFeaturedColumnError(err)) {
+      await pool.query(`ALTER TABLE order_reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false NOT NULL`).catch(() => {});
+      await pool.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false NOT NULL`).catch(() => {});
+      const retry = await pool.query<{
+        id: string;
+        order_id: string;
+        customer_name: string | null;
+        customer_email: string | null;
+        rating: number;
+        comment: string | null;
+        tags: unknown;
+        is_featured: boolean | null;
+        created_at: string;
+      }>(
+        `UPDATE order_reviews SET is_featured = $2 WHERE id = $1
+         RETURNING id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at`,
+        [id, featured],
+      );
+      if (retry.rows.length === 0) return null;
+      return rowToReview(retry.rows[0]);
+    }
+    throw err;
+  }
 }
 
 export async function listFeaturedReviews(): Promise<FeaturedPublicReview[]> {
   const pool = getPool();
   await ensureOrderReviewsTable();
-  const res = await pool.query<{
-    id: string;
-    customer_name: string | null;
-    rating: number;
-    comment: string | null;
-    created_at: string;
-  }>(
-    `SELECT id, customer_name, rating, comment, created_at
-     FROM order_reviews
-     WHERE is_featured = true
-     ORDER BY created_at DESC`,
-    [],
-  );
-  return res.rows.map((row) => ({
-    id: row.id,
-    customerName: row.customer_name ?? 'Anonymous',
-    rating: Number(row.rating),
-    comment: row.comment ?? '',
-    createdAt: row.created_at,
-  }));
+  try {
+    const res = await pool.query<{
+      id: string;
+      customer_name: string | null;
+      rating: number;
+      comment: string | null;
+      created_at: string;
+    }>(
+      `SELECT id, customer_name, rating, comment, created_at
+       FROM order_reviews
+       WHERE is_featured = true
+       ORDER BY created_at DESC`,
+      [],
+    );
+    return res.rows.map((row) => ({
+      id: row.id,
+      customerName: row.customer_name ?? 'Anonymous',
+      rating: Number(row.rating),
+      comment: row.comment ?? '',
+      createdAt: row.created_at,
+    }));
+  } catch (err) {
+    if (isMissingFeaturedColumnError(err)) {
+      await pool.query(`ALTER TABLE order_reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false NOT NULL`).catch(() => {});
+      await pool.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false NOT NULL`).catch(() => {});
+      const retry = await pool.query<{
+        id: string;
+        customer_name: string | null;
+        rating: number;
+        comment: string | null;
+        created_at: string;
+      }>(
+        `SELECT id, customer_name, rating, comment, created_at
+         FROM order_reviews
+         WHERE is_featured = true
+         ORDER BY created_at DESC`,
+        [],
+      );
+      return retry.rows.map((row) => ({
+        id: row.id,
+        customerName: row.customer_name ?? 'Anonymous',
+        rating: Number(row.rating),
+        comment: row.comment ?? '',
+        createdAt: row.created_at,
+      }));
+    }
+    throw err;
+  }
 }
 
 export async function getOrderReviewStats(): Promise<OrderReviewStats> {
