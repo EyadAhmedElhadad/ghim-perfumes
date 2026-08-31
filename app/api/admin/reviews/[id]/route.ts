@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { getCurrentAdmin } from '@/lib/db/auth';
 import { deleteOrderReview, setReviewFeatured } from '@/lib/reviews';
 
@@ -26,6 +27,10 @@ export async function PATCH(
     if (!updated) {
       return NextResponse.json({ error: 'Review not found' }, { status: 404 });
     }
+    // Instant sync — revalidate homepage so Whispers of the Cloud updates immediately
+    revalidatePath('/');
+    revalidatePath('/api/public/reviews');
+    revalidatePath('/api/public/content');
     return NextResponse.json({ review: updated });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to update review';

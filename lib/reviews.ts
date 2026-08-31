@@ -180,6 +180,9 @@ export async function ensureOrderReviewsTable(): Promise<void> {
 }
 
 function isMissingFeaturedColumnError(err: unknown): boolean {
+  const anyErr = err as Record<string, unknown>;
+  const code = typeof anyErr.code === 'string' ? anyErr.code : '';
+  if (code === '42703') return true;
   const msg = err instanceof Error ? err.message : String(err);
   return msg.includes('is_featured') && (msg.includes('does not exist') || msg.includes('column'));
 }
@@ -209,7 +212,7 @@ function rowToReview(row: {
     rating: Number(row.rating),
     comment: row.comment ?? '',
     tags: parsedTags,
-    isFeatured: Boolean(row.is_featured),
+    isFeatured: Boolean(row.is_featured ?? false),
     createdAt: row.created_at,
   };
 }
