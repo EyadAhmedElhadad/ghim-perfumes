@@ -10,13 +10,11 @@ const ORDER_REVIEWS_TABLE_SQL = `
     rating INTEGER NOT NULL,
     comment TEXT,
     tags JSONB,
-    is_featured BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
   CREATE INDEX IF NOT EXISTS order_reviews_created_at_idx ON order_reviews (created_at DESC);
   CREATE INDEX IF NOT EXISTS order_reviews_rating_idx ON order_reviews (rating);
-  CREATE INDEX IF NOT EXISTS order_reviews_featured_idx ON order_reviews (is_featured) WHERE is_featured = true;
-  `;
+`;
 
 export type OrderReview = {
   id: string;
@@ -26,16 +24,6 @@ export type OrderReview = {
   rating: number;
   comment: string;
   tags: string[];
-  isFeatured: boolean;
-  createdAt: string;
-};
-
-/** Safe public representation — never exposes email or orderId */
-export type FeaturedPublicReview = {
-  id: string;
-  customerName: string;
-  rating: number;
-  comment: string;
   createdAt: string;
 };
 
@@ -58,9 +46,6 @@ export type OrderReviewInput = {
 export async function ensureOrderReviewsTable(): Promise<void> {
   const pool = getPool();
   await pool.query(ORDER_REVIEWS_TABLE_SQL);
-  // Backfill for existing deployments that created the table before is_featured existed
-  await pool.query(`ALTER TABLE order_reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT false`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS order_reviews_featured_idx ON order_reviews (is_featured) WHERE is_featured = true`);
 }
 
 function rowToReview(row: {
@@ -71,7 +56,6 @@ function rowToReview(row: {
   rating: number;
   comment: string | null;
   tags: unknown;
-  is_featured?: boolean | null;
   created_at: string;
 }): OrderReview {
   let parsedTags: string[] = [];
@@ -88,7 +72,6 @@ function rowToReview(row: {
     rating: Number(row.rating),
     comment: row.comment ?? '',
     tags: parsedTags,
-    isFeatured: Boolean(row.is_featured),
     createdAt: row.created_at,
   };
 }
@@ -122,19 +105,18 @@ export async function upsertOrderReview(
     rating: number;
     comment: string | null;
     tags: unknown;
-    is_featured: boolean | null;
     created_at: string;
   }>(
     `INSERT INTO order_reviews (order_id, customer_name, customer_email, rating, comment, tags, created_at)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      ON CONFLICT (order_id) DO UPDATE SET
-        customer_name = EXCLUDED.customer_name,
-        customer_email = EXCLUDED.customer_email,
-        rating = EXCLUDED.rating,
-        comment = EXCLUDED.comment,
-        tags = EXCLUDED.tags,
-        created_at = EXCLUDED.created_at
-      RETURNING id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at`,
+       customer_name = EXCLUDED.customer_name,
+       customer_email = EXCLUDED.customer_email,
+       rating = EXCLUDED.rating,
+       comment = EXCLUDED.comment,
+       tags = EXCLUDED.tags,
+       created_at = EXCLUDED.created_at
+     RETURNING id, order_id, customer_name, customer_email, rating, comment, tags, created_at`,
     [
       input.orderId,
       input.customerName ?? '',
@@ -159,10 +141,9 @@ export async function listOrderReviews(): Promise<OrderReview[]> {
     rating: number;
     comment: string | null;
     tags: unknown;
-    is_featured: boolean | null;
     created_at: string;
   }>(
-    `SELECT id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at
+    `SELECT id, order_id, customer_name, customer_email, rating, comment, tags, created_at
      FROM order_reviews
      ORDER BY created_at DESC`,
     [],
@@ -183,10 +164,9 @@ export async function getReviewByOrder(
     rating: number;
     comment: string | null;
     tags: unknown;
-    is_featured: boolean | null;
     created_at: string;
   }>(
-    `SELECT id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at
+    `SELECT id, order_id, customer_name, customer_email, rating, comment, tags, created_at
      FROM order_reviews WHERE order_id = $1 LIMIT 1`,
     [orderId],
   );
@@ -202,56 +182,6 @@ export async function deleteOrderReview(id: string): Promise<boolean> {
     [id],
   );
   return (res.rowCount ?? 0) > 0;
-}
-
-export async function setReviewFeatured(
-  id: string,
-  featured: boolean,
-): Promise<OrderReview | null> {
-  const pool = getPool();
-  await ensureOrderReviewsTable();
-  const res = await pool.query<{
-    id: string;
-    order_id: string;
-    customer_name: string | null;
-    customer_email: string | null;
-    rating: number;
-    comment: string | null;
-    tags: unknown;
-    is_featured: boolean | null;
-    created_at: string;
-  }>(
-    `UPDATE order_reviews SET is_featured = $2 WHERE id = $1
-     RETURNING id, order_id, customer_name, customer_email, rating, comment, tags, is_featured, created_at`,
-    [id, featured],
-  );
-  if (res.rows.length === 0) return null;
-  return rowToReview(res.rows[0]);
-}
-
-export async function listFeaturedReviews(): Promise<FeaturedPublicReview[]> {
-  const pool = getPool();
-  await ensureOrderReviewsTable();
-  const res = await pool.query<{
-    id: string;
-    customer_name: string | null;
-    rating: number;
-    comment: string | null;
-    created_at: string;
-  }>(
-    `SELECT id, customer_name, rating, comment, created_at
-     FROM order_reviews
-     WHERE is_featured = true
-     ORDER BY created_at DESC`,
-    [],
-  );
-  return res.rows.map((row) => ({
-    id: row.id,
-    customerName: row.customer_name ?? 'Anonymous',
-    rating: Number(row.rating),
-    comment: row.comment ?? '',
-    createdAt: row.created_at,
-  }));
 }
 
 export async function getOrderReviewStats(): Promise<OrderReviewStats> {

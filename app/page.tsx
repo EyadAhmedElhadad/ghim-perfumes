@@ -14,8 +14,6 @@ import CartDrawer from '@/components/CartDrawer';
 import Stardust from '@/components/Stardust';
 import AddToCartMini from '@/components/AddToCartMini';
 import BestSellersCarousel from '@/components/BestSellersCarousel';
-import FeaturedReviews from '@/components/FeaturedReviews';
-import { listFeaturedReviews } from '@/lib/reviews';
 
 // Cache the storefront home page for 5 minutes (ISR) for fast repeat loads.
 export const revalidate = 300;
@@ -30,7 +28,6 @@ export default async function HomePage() {
   const products = await getProducts();
   const collectionImages = await getCollectionImages();
   const home = await getHomepageContent();
-  const featuredReviews = await listFeaturedReviews().catch(() => []);
 
   // Best Sellers: curated ordered list when the admin has configured one,
   // otherwise fall back to showing all products (current behaviour).
@@ -219,7 +216,6 @@ export default async function HomePage() {
         </section>
 
         <BestSellersCarousel products={featuredProducts} />
-        <FeaturedReviews reviews={featuredReviews} />
       </main>
 
       <Footer />
