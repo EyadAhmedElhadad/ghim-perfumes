@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { insertFeedback } from '@/lib/feedback';
+import { upsertOrderReview } from '@/lib/reviews';
 
 export const runtime = 'nodejs';
 
@@ -26,6 +27,18 @@ export async function POST(req: Request) {
     }
 
     await insertFeedback({ orderId, rating, comment, tags, createdAt });
+    // Also mirror into order_reviews so it appears in admin dashboard & can be featured on homepage
+    try {
+      await upsertOrderReview({
+        orderId,
+        customerName: '',
+        rating,
+        comment,
+        tags,
+      });
+    } catch (e) {
+      console.warn('[feedback] order_reviews mirror failed:', e);
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to save feedback';

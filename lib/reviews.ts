@@ -1,4 +1,6 @@
 import 'server-only';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import path from 'node:path';
 import { getPool } from './neon';
 
 const ORDER_REVIEWS_TABLE_SQL = `
@@ -55,7 +57,102 @@ export type OrderReviewInput = {
   tags?: string[];
 };
 
+function isReviewsDbConfigured(): boolean {
+  return Boolean(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL);
+}
+
+const REVIEWS_DEMO_DIR = path.join(process.cwd(), 'data');
+const REVIEWS_DEMO_FILE = path.join(REVIEWS_DEMO_DIR, 'order-reviews.json');
+
+const DEMO_REVIEWS_FALLBACK: OrderReview[] = [
+  {
+    id: 'demo-review-1',
+    orderId: 'order-demo-1',
+    customerName: 'Layla A.',
+    customerEmail: null,
+    rating: 5,
+    comment: 'GHIM fragrances are absolutely divine — long-lasting and elegant. The packaging feels truly luxury.',
+    tags: ['Beautiful packaging', 'Great selection'],
+    isFeatured: true,
+    createdAt: '2026-08-20T10:00:00.000Z',
+  },
+  {
+    id: 'demo-review-2',
+    orderId: 'order-demo-2',
+    customerName: 'Omar K.',
+    customerEmail: null,
+    rating: 5,
+    comment: 'Exceptional scent and fast delivery. The 30% bundle offer is fantastic value!',
+    tags: ['Fast loading', 'Great prices'],
+    isFeatured: true,
+    createdAt: '2026-08-21T12:00:00.000Z',
+  },
+  {
+    id: 'demo-review-3',
+    orderId: 'order-demo-3',
+    customerName: 'Sara M.',
+    customerEmail: null,
+    rating: 4,
+    comment: 'Beautiful Middle Eastern heritage in every bottle. Will definitely order again.',
+    tags: ['Easy checkout'],
+    isFeatured: true,
+    createdAt: '2026-08-22T14:00:00.000Z',
+  },
+  {
+    id: 'demo-review-4',
+    orderId: 'order-demo-4',
+    customerName: 'Youssef H.',
+    customerEmail: null,
+    rating: 5,
+    comment: 'Outstanding customer service and authentic feedback system. GHIM has my trust.',
+    tags: ['Helpful support'],
+    isFeatured: false,
+    createdAt: '2026-08-23T09:00:00.000Z',
+  },
+];
+
+function loadFileReviews(): OrderReview[] {
+  try {
+    const raw = readFileSync(REVIEWS_DEMO_FILE, 'utf8');
+    const parsed = JSON.parse(raw) as unknown[];
+    if (!Array.isArray(parsed)) return [...DEMO_REVIEWS_FALLBACK];
+    const mapped = parsed
+      .map((r) => {
+        if (!r || typeof r !== 'object') return null;
+        const o = r as Record<string, unknown>;
+        return {
+          id: String(o.id ?? ''),
+          orderId: String(o.orderId ?? o.order_id ?? ''),
+          customerName: String(o.customerName ?? o.customer_name ?? ''),
+          customerEmail: (o.customerEmail as string) ?? (o.customer_email as string) ?? null,
+          rating: Number(o.rating ?? 0),
+          comment: String(o.comment ?? ''),
+          tags: Array.isArray(o.tags) ? (o.tags as string[]) : [],
+          isFeatured: Boolean(o.isFeatured ?? o.is_featured ?? false),
+          createdAt: String(o.createdAt ?? o.created_at ?? new Date().toISOString()),
+        } as OrderReview;
+      })
+      .filter((x): x is OrderReview => x !== null && Boolean(x.id && x.orderId));
+    // If file exists but empty, return demo fallback so dashboard/homepage are not empty in demo mode
+    if (mapped.length === 0) return [...DEMO_REVIEWS_FALLBACK];
+    return mapped;
+  } catch {
+    // File missing or unreadable — return demo fallback for local demo without DB
+    return [...DEMO_REVIEWS_FALLBACK];
+  }
+}
+
+function saveFileReviews(reviews: OrderReview[]): void {
+  try {
+    mkdirSync(REVIEWS_DEMO_DIR, { recursive: true });
+    writeFileSync(REVIEWS_DEMO_FILE, JSON.stringify(reviews, null, 2), 'utf8');
+  } catch (e) {
+    console.warn('[order_reviews] file persist failed:', e);
+  }
+}
+
 export async function ensureOrderReviewsTable(): Promise<void> {
+  if (!isReviewsDbConfigured()) return;
   const pool = getPool();
   await pool.query(ORDER_REVIEWS_TABLE_SQL);
   // Backfill for existing deployments that created the table before is_featured existed
@@ -129,6 +226,40 @@ function tagsLiteral(tags: unknown): unknown {
 export async function upsertOrderReview(
   input: OrderReviewInput,
 ): Promise<OrderReview> {
+  if (!isReviewsDbConfigured()) {
+    const all = loadFileReviews();
+    const now = new Date().toISOString();
+    const existingIdx = all.findIndex((r) => r.orderId === input.orderId);
+    if (existingIdx >= 0) {
+      const existing = all[existingIdx];
+      const updated: OrderReview = {
+        ...existing,
+        customerName: input.customerName ?? existing.customerName,
+        customerEmail: input.customerEmail ?? existing.customerEmail,
+        rating: input.rating,
+        comment: input.comment && input.comment.trim() ? input.comment.slice(0, 2000) : '',
+        tags: input.tags ?? [],
+        createdAt: now,
+      };
+      all[existingIdx] = updated;
+      saveFileReviews(all);
+      return updated;
+    }
+    const created: OrderReview = {
+      id: `review_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      orderId: input.orderId,
+      customerName: input.customerName ?? '',
+      customerEmail: input.customerEmail ?? null,
+      rating: input.rating,
+      comment: input.comment && input.comment.trim() ? input.comment.slice(0, 2000) : '',
+      tags: input.tags ?? [],
+      isFeatured: false,
+      createdAt: now,
+    };
+    all.unshift(created);
+    saveFileReviews(all);
+    return created;
+  }
   const pool = getPool();
   await ensureOrderReviewsTable();
   try {
@@ -206,6 +337,9 @@ export async function upsertOrderReview(
 }
 
 export async function listOrderReviews(): Promise<OrderReview[]> {
+  if (!isReviewsDbConfigured()) {
+    return loadFileReviews().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
   const pool = getPool();
   await ensureOrderReviewsTable();
   try {
@@ -225,7 +359,46 @@ export async function listOrderReviews(): Promise<OrderReview[]> {
        ORDER BY created_at DESC`,
       [],
     );
-    return res.rows.map(rowToReview);
+    let reviews = res.rows.map(rowToReview);
+    // Merge legacy feedback table entries so RateExperienceModal feedback also appears in dashboard
+    try {
+      const fb = await pool.query<{
+        id: string;
+        order_id: string;
+        rating: number;
+        comment: string | null;
+        tags: unknown;
+        created_at: string;
+      }>(`SELECT id, order_id, rating, comment, tags, created_at FROM feedback ORDER BY created_at DESC`);
+      const seen = new Set(reviews.map((r) => r.orderId));
+      for (const row of fb.rows) {
+        if (seen.has(row.order_id)) continue;
+        let parsedTags: string[] = [];
+        const rawTags = row.tags as unknown;
+        if (Array.isArray(rawTags)) parsedTags = (rawTags as unknown[]).filter((t): t is string => typeof t === 'string');
+        else if (typeof rawTags === 'string') {
+          try {
+            const p = JSON.parse(rawTags);
+            if (Array.isArray(p)) parsedTags = (p as unknown[]).filter((t): t is string => typeof t === 'string');
+          } catch {}
+        }
+        reviews.push({
+          id: row.id,
+          orderId: row.order_id,
+          customerName: '',
+          customerEmail: null,
+          rating: Number(row.rating),
+          comment: row.comment ?? '',
+          tags: parsedTags,
+          isFeatured: false,
+          createdAt: row.created_at,
+        });
+      }
+      reviews.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } catch {
+      // feedback table may not exist — ignore
+    }
+    return reviews;
   } catch (err) {
     if (isMissingFeaturedColumnError(err)) {
       await pool.query(`ALTER TABLE order_reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false NOT NULL`).catch(() => {});
@@ -255,6 +428,10 @@ export async function listOrderReviews(): Promise<OrderReview[]> {
 export async function getReviewByOrder(
   orderId: string,
 ): Promise<OrderReview | null> {
+  if (!isReviewsDbConfigured()) {
+    const all = loadFileReviews();
+    return all.find((r) => r.orderId === orderId) ?? null;
+  }
   const pool = getPool();
   await ensureOrderReviewsTable();
   try {
@@ -301,6 +478,13 @@ export async function getReviewByOrder(
 }
 
 export async function deleteOrderReview(id: string): Promise<boolean> {
+  if (!isReviewsDbConfigured()) {
+    const all = loadFileReviews();
+    const filtered = all.filter((r) => r.id !== id);
+    if (filtered.length === all.length) return false;
+    saveFileReviews(filtered);
+    return true;
+  }
   const pool = getPool();
   await ensureOrderReviewsTable();
   const res = await pool.query(
@@ -314,6 +498,14 @@ export async function setReviewFeatured(
   id: string,
   featured: boolean,
 ): Promise<OrderReview | null> {
+  if (!isReviewsDbConfigured()) {
+    const all = loadFileReviews();
+    const idx = all.findIndex((r) => r.id === id);
+    if (idx < 0) return null;
+    all[idx] = { ...all[idx], isFeatured: featured };
+    saveFileReviews(all);
+    return all[idx];
+  }
   const pool = getPool();
   await ensureOrderReviewsTable();
   try {
@@ -361,6 +553,19 @@ export async function setReviewFeatured(
 }
 
 export async function listFeaturedReviews(): Promise<FeaturedPublicReview[]> {
+  if (!isReviewsDbConfigured()) {
+    const all = loadFileReviews();
+    return all
+      .filter((r) => r.isFeatured)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map((r) => ({
+        id: r.id,
+        customerName: r.customerName || 'Anonymous',
+        rating: r.rating,
+        comment: r.comment || '',
+        createdAt: r.createdAt,
+      }));
+  }
   const pool = getPool();
   await ensureOrderReviewsTable();
   try {
