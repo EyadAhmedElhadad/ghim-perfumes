@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Panel, useToast } from '@/components/admin/ui';
-import { TrashIcon } from '@/components/icons';
+import { TrashIcon, StarIcon, SparkleIcon } from '@/components/icons';
 
 type Review = {
   id: string;
@@ -12,6 +12,7 @@ type Review = {
   rating: number;
   comment: string;
   tags: string[];
+  isFeatured: boolean;
   createdAt: string;
 };
 
@@ -46,6 +47,7 @@ export default function ReviewsPage() {
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -54,7 +56,16 @@ export default function ReviewsPage() {
         const res = await fetch('/api/admin/reviews', { cache: 'no-store' });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? 'Failed to load reviews');
-        setStats(data as Stats);
+        // Normalize: handle both isFeatured (camel) and is_featured (snake) for backward compat
+        const raw = data as Stats & { reviews: Array<Review & { is_featured?: boolean; isFeatured?: boolean }> };
+        const normalized: Stats = {
+          ...raw,
+          reviews: raw.reviews.map((r) => ({
+            ...r,
+            isFeatured: Boolean((r as unknown as Record<string, unknown>).isFeatured ?? (r as unknown as Record<string, unknown>).is_featured ?? false),
+          })),
+        };
+        setStats(normalized);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load reviews');
       } finally {
@@ -62,6 +73,65 @@ export default function ReviewsPage() {
       }
     })();
   }, []);
+
+  async function toggleFeatured(id: string, nextFeatured: boolean) {
+    setTogglingId(id);
+    // optimistic update
+    setStats((curr) =>
+      curr
+        ? {
+            ...curr,
+            reviews: curr.reviews.map((r) =>
+              r.id === id ? { ...r, isFeatured: nextFeatured } : r,
+            ),
+          }
+        : curr,
+    );
+    try {
+      const res = await fetch(`/api/admin/reviews/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFeatured: nextFeatured }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? 'Failed to update featured status');
+      // sync from server truth
+      const serverFeatured = Boolean(
+        (data.review as Review)?.isFeatured ??
+          (data.review as Record<string, unknown>)?.is_featured ??
+          nextFeatured,
+      );
+      setStats((curr) =>
+        curr
+          ? {
+              ...curr,
+              reviews: curr.reviews.map((r) =>
+                r.id === id ? { ...r, isFeatured: serverFeatured } : r,
+              ),
+            }
+          : curr,
+      );
+      toast(
+        serverFeatured ? 'Review featured on homepage' : 'Review removed from homepage',
+        'success',
+      );
+    } catch (err) {
+      // revert optimistic on error
+      setStats((curr) =>
+        curr
+          ? {
+              ...curr,
+              reviews: curr.reviews.map((r) =>
+                r.id === id ? { ...r, isFeatured: !nextFeatured } : r,
+              ),
+            }
+          : curr,
+      );
+      toast(err instanceof Error ? err.message : 'Failed to update featured status', 'error');
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   async function deleteReview(id: string) {
     setDeletingId(id);
@@ -172,16 +242,47 @@ export default function ReviewsPage() {
               {visible.map((r) => (
                 <li
                   key={r.id}
-                  className="rounded-xl border border-outline-variant/40 bg-surface-container-lowest p-4"
+                  className={`rounded-xl border p-4 transition-colors ${
+                    r.isFeatured
+                      ? 'border-amber-400/40 bg-amber-500/[0.06] shadow-[0_0_0_1px_rgba(251,191,36,0.12)]'
+                      : 'border-outline-variant/40 bg-surface-container-lowest'
+                  }`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                       <span className="font-headline-md text-sm font-semibold text-on-surface">
                         {r.customerName || 'Anonymous'}
                       </span>
                       <Stars rating={r.rating} />
+                      {r.isFeatured ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-amber-300">
+                          <StarIcon className="h-3 w-3 text-amber-300" />
+                          Featured on Home
+                        </span>
+                      ) : null}
                     </div>
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-label={r.isFeatured ? 'Remove from homepage' : 'Feature on homepage'}
+                        title={r.isFeatured ? 'Remove from homepage' : 'Feature on homepage'}
+                        disabled={togglingId === r.id}
+                        onClick={() => void toggleFeatured(r.id, !r.isFeatured)}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                          r.isFeatured
+                            ? 'border-amber-400/50 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
+                            : 'border-outline-variant/40 bg-surface-container-high text-on-surface-variant hover:border-amber-400/30 hover:text-amber-300'
+                        }`}
+                      >
+                        <SparkleIcon className={`h-3.5 w-3.5 ${r.isFeatured ? 'text-amber-300' : ''}`} />
+                        <span className="hidden sm:inline">
+                          {togglingId === r.id
+                            ? 'Saving…'
+                            : r.isFeatured
+                              ? 'Featured'
+                              : 'Feature'}
+                        </span>
+                      </button>
                       {confirmingId === r.id ? (
                         <>
                           <button
