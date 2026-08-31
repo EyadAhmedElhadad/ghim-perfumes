@@ -18,6 +18,7 @@ const ORDER_REVIEWS_TABLE_SQL = `
   CREATE INDEX IF NOT EXISTS order_reviews_created_at_idx ON order_reviews (created_at DESC);
   CREATE INDEX IF NOT EXISTS order_reviews_rating_idx ON order_reviews (rating);
   CREATE INDEX IF NOT EXISTS order_reviews_featured_idx ON order_reviews (is_featured) WHERE is_featured = true;
+  CREATE INDEX IF NOT EXISTS idx_order_reviews_featured ON order_reviews (is_featured) WHERE is_featured = true;
   `;
 
 export type OrderReview = {
@@ -156,10 +157,11 @@ export async function ensureOrderReviewsTable(): Promise<void> {
   const pool = getPool();
   await pool.query(ORDER_REVIEWS_TABLE_SQL);
   // Backfill for existing deployments that created the table before is_featured existed
+  // Spec requires exact: ALTER TABLE order_reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT false;
   await pool.query(`ALTER TABLE order_reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT false`);
   await pool.query(`CREATE INDEX IF NOT EXISTS order_reviews_featured_idx ON order_reviews (is_featured) WHERE is_featured = true`);
-  // Bug Fix: also ensure legacy `reviews` table (if present) has is_featured column
-  // Some environments or older migrations use `reviews` instead of `order_reviews`
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_order_reviews_featured ON order_reviews (is_featured) WHERE is_featured = true`);
+  // Legacy `reviews` table (if present) — also ensure is_featured exists
   try {
     await pool.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false NOT NULL`);
   } catch {
@@ -169,6 +171,11 @@ export async function ensureOrderReviewsTable(): Promise<void> {
     await pool.query(`CREATE INDEX IF NOT EXISTS reviews_featured_idx ON reviews (is_featured) WHERE is_featured = true`);
   } catch {
     // ignore if table missing
+  }
+  try {
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_reviews_featured ON reviews (is_featured) WHERE is_featured = true`);
+  } catch {
+    // ignore
   }
 }
 
