@@ -15,6 +15,8 @@ type DbOrderRow = {
   currency: string;
   status: string;
   payment_method: string;
+  discount_code: string | null;
+  discount_amount: string | number | null;
   created_at: string;
   review_token: string | null;
 };
@@ -27,6 +29,10 @@ export type NewOrderInput = {
   total: number;
   currency?: string;
   paymentMethod: string;
+  /** Optional discount code applied at checkout (server will re-validate) */
+  discountCode?: string | null;
+  /** Client-sent discount amount (ignored — server recalculates) */
+  discountAmount?: number;
 };
 
 export class OrderValidationError extends Error {
@@ -66,6 +72,9 @@ export async function ensureOrdersTable(): Promise<void> {
   await pool.query(
     `ALTER TABLE orders ADD COLUMN IF NOT EXISTS review_token TEXT`,
   );
+  // Discount code support — store code and amount server-side
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_code TEXT`);
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount NUMERIC NOT NULL DEFAULT 0`);
 }
 
 export async function createOrder(input: NewOrderInput): Promise<Order> {
@@ -78,26 +87,44 @@ export async function createOrder(input: NewOrderInput): Promise<Order> {
     governorateAr: GOVERNORATES_AR[governorate],
   };
 
+  // Server-side discount verification — never trust client total
+  let discountCode: string | null = null;
+  let discountAmount = 0;
+  let discountId: string | null = null;
+  if (input.discountCode && input.discountCode.trim()) {
+    // Lazy import to avoid circular deps
+    const { applyDiscountServerSide } = await import('./discounts');
+    const applied = await applyDiscountServerSide(input.discountCode, input.subtotal);
+    discountCode = applied.discountCode;
+    discountAmount = applied.discountAmount;
+    discountId = applied.discountId;
+  }
+
+  // Recompute total authoritatively: subtotal - discount + shipping
+  const authoritativeTotal = Math.max(0, Math.round((input.subtotal - discountAmount + input.shipping) * 100) / 100);
+
   const order: Order = {
     id: randomUUID(),
     items: input.items,
     address,
     subtotal: input.subtotal,
     shipping: input.shipping,
-    total: input.total,
+    total: authoritativeTotal,
     currency: input.currency || 'EGP',
     status: 'pending',
     paymentMethod: input.paymentMethod,
     createdAt: new Date().toISOString(),
     reviewToken: '',
+    discountCode,
+    discountAmount,
   };
 
   const pool = getPool();
   await ensureOrdersTable();
   await pool.query(
     `INSERT INTO orders
-       (id, items, address, governorate, subtotal, shipping, total, currency, status, payment_method, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+       (id, items, address, governorate, subtotal, shipping, total, currency, status, payment_method, discount_code, discount_amount, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
     [
       order.id,
       JSON.stringify(order.items),
@@ -109,9 +136,20 @@ export async function createOrder(input: NewOrderInput): Promise<Order> {
       order.currency,
       order.status,
       order.paymentMethod,
+      order.discountCode,
+      order.discountAmount,
       order.createdAt,
     ],
   );
+  // Increment usage count after successful order creation
+  if (discountId) {
+    try {
+      const { incrementDiscountUsage } = await import('./discounts');
+      await incrementDiscountUsage(discountId);
+    } catch (e) {
+      console.warn('[orders] failed to increment discount usage:', e);
+    }
+  }
   return order;
 }
 
@@ -125,7 +163,7 @@ export async function updateOrderStatus(
     `UPDATE orders
      SET status = $2
      WHERE id = $1
-     RETURNING id, items, address, governorate, subtotal, shipping, total, currency, status, payment_method, created_at, review_token`,
+     RETURNING id, items, address, governorate, subtotal, shipping, total, currency, status, payment_method, discount_code, discount_amount, created_at, review_token`,
     [id, status],
   );
   if (res.rows.length === 0) return null;
@@ -180,7 +218,7 @@ export async function listOrders(limit = 100): Promise<Order[]> {
   const pool = getPool();
   await ensureOrdersTable();
   const res = await pool.query<DbOrderRow>(
-    `SELECT id, items, address, governorate, subtotal, shipping, total, currency, status, payment_method, created_at, review_token
+    `SELECT id, items, address, governorate, subtotal, shipping, total, currency, status, payment_method, discount_code, discount_amount, created_at, review_token
      FROM orders
      ORDER BY created_at DESC
      LIMIT $1`,
@@ -192,7 +230,7 @@ export async function listOrders(limit = 100): Promise<Order[]> {
 export async function getOrder(id: string): Promise<Order | null> {
   const pool = getPool();
   const res = await pool.query<DbOrderRow>(
-    `SELECT id, items, address, governorate, subtotal, shipping, total, currency, status, payment_method, created_at
+    `SELECT id, items, address, governorate, subtotal, shipping, total, currency, status, payment_method, discount_code, discount_amount, created_at, review_token
      FROM orders WHERE id = $1`,
     [id],
   );
@@ -220,5 +258,7 @@ function rowToOrder(row: DbOrderRow): Order {
     paymentMethod: row.payment_method,
     createdAt: row.created_at,
     reviewToken: row.review_token ?? '',
+    discountCode: row.discount_code ?? null,
+    discountAmount: row.discount_amount != null ? Number(row.discount_amount) : 0,
   };
 }

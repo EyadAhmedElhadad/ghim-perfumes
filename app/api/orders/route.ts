@@ -25,6 +25,12 @@ export async function POST(req: Request) {
         : defaultFee;
     const subtotal = Number(body.subtotal) || 0;
     const total = subtotal + shipping;
+    const discountCode =
+      typeof (body as Record<string, unknown>).discountCode === 'string'
+        ? ((body as Record<string, unknown>).discountCode as string)
+        : typeof (body as Record<string, unknown>).discount_code === 'string'
+          ? ((body as Record<string, unknown>).discount_code as string)
+          : null;
 
     const order = await createOrder({
       items: body.items ?? [],
@@ -34,9 +40,16 @@ export async function POST(req: Request) {
       total,
       currency: body.currency,
       paymentMethod: body.paymentMethod ?? '',
+      discountCode,
     });
     return NextResponse.json(
-      { id: order.id, total: order.total, status: order.status },
+      {
+        id: order.id,
+        total: order.total,
+        status: order.status,
+        discountCode: order.discountCode,
+        discountAmount: order.discountAmount,
+      },
       { status: 201 },
     );
   } catch (err) {

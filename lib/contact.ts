@@ -23,6 +23,8 @@ export type WhatsAppOrderInput = {
   shipping: number;
   total: number;
   currency: string;
+  discountCode?: string | null;
+  discountAmount?: number;
 };
 
 function formatMoney(value: number, currency: string): string {
@@ -53,6 +55,9 @@ export function formatOrderMessage(o: WhatsAppOrderInput): string {
   }
   lines.push('');
   lines.push(`Subtotal: ${formatMoney(o.subtotal, o.currency)}`);
+  if (o.discountCode && o.discountAmount && o.discountAmount > 0) {
+    lines.push(`Discount (${o.discountCode}): -${formatMoney(o.discountAmount, o.currency)}`);
+  }
   if (o.shipping > 0) {
     lines.push(`Shipping: ${formatMoney(o.shipping, o.currency)}`);
   }

@@ -29,6 +29,8 @@ export const ORDERS_TABLE_SQL = `
     currency TEXT NOT NULL DEFAULT 'EGP',
     status TEXT NOT NULL DEFAULT 'pending',
     payment_method TEXT NOT NULL,
+    discount_code TEXT,
+    discount_amount NUMERIC NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
   CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders (created_at DESC);

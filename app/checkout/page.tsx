@@ -98,12 +98,20 @@ export default function CheckoutPage() {
     form.governorate && shippingFees[form.governorate] != null
       ? Number(shippingFees[form.governorate])
       : defaultShippingFee;
-  const orderTotal = subtotal + shipping;
 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [discountCode, setDiscountCode] = useState('');
   const [discountMsg, setDiscountMsg] = useState<string | null>(null);
+  const [discountBusy, setDiscountBusy] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    code: string;
+    type: 'percentage' | 'fixed';
+    value: number;
+    discountAmount: number;
+  } | null>(null);
+  const discountAmount = appliedDiscount?.discountAmount ?? 0;
+  const orderTotal = Math.max(0, subtotal - discountAmount + shipping);
   const [placed, setPlaced] = useState<{
     id: string;
     total: number;
@@ -189,12 +197,48 @@ export default function CheckoutPage() {
     );
   }
 
-  function applyDiscount() {
-    if (!discountCode.trim()) {
+  async function applyDiscount() {
+    const code = discountCode.trim().toUpperCase();
+    if (!code) {
       setDiscountMsg('Enter a code to apply.');
       return;
     }
-    setDiscountMsg('Discount codes are not active for this store yet.');
+    if (appliedDiscount) {
+      setDiscountMsg('A code is already applied. Remove it first.');
+      return;
+    }
+    if (subtotal <= 0) {
+      setDiscountMsg('Your cart is empty.');
+      return;
+    }
+    setDiscountBusy(true);
+    setDiscountMsg(null);
+    try {
+      const res = await fetch('/api/discounts/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, subtotal }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.valid) throw new Error(data.error ?? 'Invalid discount code');
+      setAppliedDiscount({
+        code: data.code as string,
+        type: data.type as 'percentage' | 'fixed',
+        value: Number(data.value),
+        discountAmount: Number(data.discountAmount),
+      });
+      setDiscountMsg(`Code ${data.code} applied: -${formatPrice(Number(data.discountAmount), currency)}`);
+    } catch (err) {
+      setDiscountMsg(err instanceof Error ? err.message : 'Failed to apply code');
+    } finally {
+      setDiscountBusy(false);
+    }
+  }
+
+  function removeDiscount() {
+    setAppliedDiscount(null);
+    setDiscountCode('');
+    setDiscountMsg(null);
   }
 
   async function submit(e: React.FormEvent) {
@@ -248,6 +292,8 @@ export default function CheckoutPage() {
         currency,
         paymentMethod,
         billingAddressSameAsShipping: form.billingSame,
+        discountCode: appliedDiscount?.code ?? null,
+        discountAmount,
       };
 
       const res = await fetch('/api/orders', {
@@ -269,8 +315,10 @@ export default function CheckoutPage() {
         items: orderItems,
         subtotal,
         shipping,
-        total: orderTotal,
+        total: data.total ?? orderTotal,
         currency,
+        discountCode: appliedDiscount?.code ?? null,
+        discountAmount: appliedDiscount?.discountAmount ?? 0,
       });
 
       clear();
@@ -687,23 +735,59 @@ export default function CheckoutPage() {
               </ul>
 
               {/* Discount code */}
-              <div className="mt-5 flex gap-2">
-                <input
-                  className="flex-1 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none transition-colors focus:border-primary"
-                  value={discountCode}
-                  onChange={(e) => setDiscountCode(e.target.value)}
-                  placeholder="Discount code"
-                />
-                <button
-                  type="button"
-                  onClick={applyDiscount}
-                  className="rounded-lg border border-outline-variant px-4 py-2.5 font-body-md text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
-                >
-                  Apply
-                </button>
-              </div>
+              {appliedDiscount ? (
+                <div className="mt-5 flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5">
+                  <span className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 font-mono text-xs font-semibold tracking-widest text-on-secondary">
+                      {appliedDiscount.code}
+                    </span>
+                    <span className="hidden text-xs text-emerald-200 sm:inline">
+                      {appliedDiscount.type === 'percentage'
+                        ? `${appliedDiscount.value}% off`
+                        : `EGP ${appliedDiscount.value} off`}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={removeDiscount}
+                    className="rounded-full border border-outline-variant/40 bg-surface-container-high px-3 py-1 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container hover:text-error"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-5 flex gap-2">
+                  <input
+                    className="flex-1 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 uppercase outline-none transition-colors focus:border-primary"
+                    value={discountCode}
+                    onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                    placeholder="Discount code"
+                    disabled={discountBusy}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        void applyDiscount();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void applyDiscount()}
+                    disabled={discountBusy}
+                    className="rounded-lg border border-outline-variant px-4 py-2.5 font-body-md text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {discountBusy ? 'Applying…' : 'Apply'}
+                  </button>
+                </div>
+              )}
               {discountMsg && (
-                <p className="mt-2 font-body-md text-xs text-on-surface-variant">{discountMsg}</p>
+                <p
+                  className={`mt-2 font-body-md text-xs ${
+                    appliedDiscount ? 'text-emerald-300' : 'text-amber-300'
+                  }`}
+                >
+                  {discountMsg}
+                </p>
               )}
 
               <div className="mt-5 space-y-2 border-t border-outline-variant/60 pt-4">
@@ -711,6 +795,12 @@ export default function CheckoutPage() {
                   <span>Subtotal</span>
                   <span>{formatPrice(subtotal, currency)}</span>
                 </div>
+                {appliedDiscount && (
+                  <div className="flex justify-between font-body-md text-sm text-emerald-300">
+                    <span>Discount ({appliedDiscount.code})</span>
+                    <span>-{formatPrice(discountAmount, currency)}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between font-body-md text-sm text-on-surface-variant">
                   <span className="flex items-center gap-1">
                     Shipping

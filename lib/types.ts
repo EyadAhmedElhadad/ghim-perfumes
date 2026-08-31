@@ -110,6 +110,10 @@ export type Order = {
   createdAt: string;
   /** Unique token used to build the customer review link (/rate/[token]). */
   reviewToken: string;
+  /** Applied discount code (uppercase) if any */
+  discountCode?: string | null;
+  /** Discount amount applied (EGP) — server-calculated, never trusted from client */
+  discountAmount?: number;
 };
 
 export type AdminProduct = {
